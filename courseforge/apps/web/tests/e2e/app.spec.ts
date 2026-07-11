@@ -20,6 +20,76 @@ const savedTrace = {
   confidence: 0.8
 };
 
+function createReadyProjectSave() {
+  const generatedAt = "2026-07-11T12:00:00.000Z";
+  const hole = {
+    holeNumber: 1,
+    par: 4,
+    status: "approved",
+    confidence: "low",
+    trace: savedTrace
+  };
+  const generatedGeometry = {
+    source: "trace_generated",
+    generatedAt,
+    holes: [{
+      holeNumber: 1,
+      source: "trace_generated",
+      generatedAt,
+      confidence: 0.45
+    }]
+  };
+
+  return {
+    saveVersion: "0.1.0",
+    savedAt: generatedAt,
+    project: {
+      id: "preview-ready-course",
+      name: "Preview Ready Course",
+      city: "Fort Wayne",
+      region: "IN",
+      location: { latitude: 41.195, longitude: -85.047 },
+      confidence: 0.9,
+      holesCount: 1,
+      status: {
+        courseConfirmed: true,
+        locationConfirmed: true,
+        boundaryConfirmed: true,
+        scorecardConfirmed: false,
+        holesTraced: true,
+        elevationGenerated: false,
+        packageExported: false
+      },
+      boundary: {
+        type: "Polygon",
+        source: "manual",
+        coordinates: [[[-85.049, 41.193], [-85.045, 41.193], [-85.045, 41.197], [-85.049, 41.197], [-85.049, 41.193]]]
+      },
+      generatedGeometry
+    },
+    selectedCourseId: "cherry-hill-fort-wayne",
+    selectedImportedCourseMetadata: null,
+    autoBuilderOpen: true,
+    draftHolePlan: { generatedAt, source: "placeholder", holes: [hole] },
+    activeTracingHoleNumber: 1,
+    currentTraceDraft: savedTrace,
+    traceStep: "review",
+    boundaryDraftPoints: [],
+    generatedGeometryVisible: true,
+    generatedGeometryStale: false
+  };
+}
+
+async function openProjectSave(page: Page, save: ReturnType<typeof createReadyProjectSave>) {
+  await page.addInitScript((projectSave) => {
+    if (!window.localStorage.getItem("courseforge.projectSave.v0")) {
+      window.localStorage.setItem("courseforge.projectSave.v0", JSON.stringify(projectSave));
+    }
+  }, save);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+}
+
 async function openSavedReviewProject(page: Page, withSavedTraces = true) {
   const holes = [
     { holeNumber: 1, status: withSavedTraces ? "trace saved" : "needs tracing", confidence: "low", trace: withSavedTraces ? savedTrace : undefined },
@@ -228,4 +298,95 @@ test("keeps review mode closed when no saved traces exist", async ({ page }) => 
 
   await expect(page.getByText("No saved hole traces are available to review yet.")).toBeVisible();
   await expect(page.getByText("Review mode", { exact: true })).toHaveCount(0);
+});
+
+test("blocks preview export with actionable coverage issues", async ({ page }) => {
+  await openSavedReviewProject(page);
+
+  const readiness = page.getByText("Preview JSON readiness").locator("..");
+  await expect(readiness).toContainText("Action required");
+  await expect(page.getByLabel("Preview export blocking issues")).toContainText(
+    "Save complete traces for all expected holes"
+  );
+  await expect(page.getByLabel("Preview export blocking issues")).toContainText(
+    "Review and approve every expected hole trace"
+  );
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeDisabled();
+});
+
+test("exports a fully ready neutral preview JSON and fits the desktop viewport", async ({ page }) => {
+  await openProjectSave(page, createReadyProjectSave());
+
+  const exportButton = page.getByRole("button", { name: "Export Preview JSON" });
+  await expect(page.getByText("Preview JSON readiness").locator("..")).toContainText("Ready");
+  await expect(page.getByText("Approved traces").locator("..")).toContainText("1/1");
+  await expect(page.getByText("Current preview geometry").locator("..")).toContainText("1/1");
+  await expect(exportButton).toBeEnabled();
+
+  const layout = await page.locator("main").evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    documentWidth: document.documentElement.scrollWidth,
+    documentHeight: document.documentElement.scrollHeight
+  }));
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
+
+  if (process.env.COURSEFORGE_SCREENSHOT_DIR) {
+    await page.screenshot({
+      path: `${process.env.COURSEFORGE_SCREENSHOT_DIR}/milestone-17-readiness-${layout.viewportWidth}x${layout.viewportHeight}.png`,
+      fullPage: true
+    });
+  }
+
+  const download = page.waitForEvent("download");
+  await exportButton.click();
+  expect((await download).suggestedFilename()).toMatch(/^courseforge-package-preview-ready-course-\d{4}-\d{2}-\d{2}\.json$/);
+});
+
+test("reopening revokes readiness until reapproval and geometry regeneration", async ({ page }) => {
+  await openProjectSave(page, createReadyProjectSave());
+  await page.getByRole("button", { name: "Review Hole Traces" }).click();
+  await page.getByRole("button", { name: "Reopen & Edit" }).click();
+
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeDisabled();
+  await expect(page.getByLabel("Preview export blocking issues")).toContainText("0/1 approved");
+  await expect(page.getByLabel("Preview export blocking issues")).toContainText(
+    "Regenerate preview geometry after the latest trace change"
+  );
+
+  await page.getByRole("button", { name: "Save Trace" }).click();
+  await page.getByRole("button", { name: "Approve Trace" }).click();
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeDisabled();
+  await page.getByRole("button", { name: "Regenerate" }).click();
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeEnabled();
+});
+
+test("save and resume recalculate readiness from restored project state", async ({ page }) => {
+  await openProjectSave(page, createReadyProjectSave());
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeEnabled();
+
+  await page.getByRole("button", { name: "Review Hole Traces" }).click();
+  await page.getByRole("button", { name: "Reopen & Edit" }).click();
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeDisabled();
+  await page.getByRole("button", { name: "Save Project" }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeDisabled();
+  await expect(page.getByLabel("Preview export blocking issues")).toContainText("0/1 approved");
+});
+
+test("project-file import recalculates readiness without persisted readiness state", async ({ page }) => {
+  await page.goto("/");
+  const save = createReadyProjectSave();
+  expect(save).not.toHaveProperty("readiness");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "preview-ready-project.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(save))
+  });
+
+  await expect(page.getByRole("button", { name: "Export Preview JSON" })).toBeEnabled();
+  await expect(page.getByText("Preview JSON readiness").locator("..")).toContainText("Ready");
 });

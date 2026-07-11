@@ -8,6 +8,12 @@ import type {
 export type CoursePackageReadiness = {
   blockingIssues: string[];
   warnings: CoursePackageWarning[];
+  coverage: {
+    expectedHoles: number;
+    completeTraces: number;
+    approvedTraces: number;
+    currentGeometry: number;
+  };
   canExport: boolean;
 };
 
@@ -15,11 +21,19 @@ function hasTrace(hole: DraftHolePlan["holes"][number]) {
   return Boolean(hole.trace?.teePoint && hole.trace.greenPoint);
 }
 
-export function getCoursePackageWarnings(
-  project: CourseProject | null,
-  draftHolePlan: DraftHolePlan | null,
-  generatedGeometryStale: boolean
-): CoursePackageWarning[] {
+function getExpectedHoleNumbers(project: CourseProject | null, draftHolePlan: DraftHolePlan | null) {
+  if (project?.scorecard?.holes.length) {
+    return project.scorecard.holes.map((hole) => hole.holeNumber);
+  }
+
+  if (draftHolePlan?.holes.length) {
+    return draftHolePlan.holes.map((hole) => hole.holeNumber);
+  }
+
+  return Array.from({ length: project?.holesCount ?? 0 }, (_, index) => index + 1);
+}
+
+export function getCoursePackageWarnings(project: CourseProject | null): CoursePackageWarning[] {
   const warnings: CoursePackageWarning[] = [
     {
       code: "basic-preview-geometry",
@@ -59,37 +73,6 @@ export function getCoursePackageWarnings(
     });
   }
 
-  if (project?.elevationModel?.status === "stale") {
-    warnings.push({
-      code: "elevation-profile-stale",
-      message: "Boundary or trace data changed after elevation generation. Regenerate elevation profile."
-    });
-  }
-
-  if (draftHolePlan?.holes.length && draftHolePlan.holes.some((hole) => !hasTrace(hole))) {
-    warnings.push({
-      code: "not-all-holes-traced",
-      message: "Not all holes have saved traces."
-    });
-  }
-
-  const savedTracesNeedingReview =
-    draftHolePlan?.holes.filter((hole) => hasTrace(hole) && hole.status !== "approved").length ?? 0;
-
-  if (savedTracesNeedingReview > 0) {
-    warnings.push({
-      code: "hole-traces-need-review",
-      message: `${savedTracesNeedingReview} saved hole ${savedTracesNeedingReview === 1 ? "trace needs" : "traces need"} review.`
-    });
-  }
-
-  if (generatedGeometryStale) {
-    warnings.push({
-      code: "generated-geometry-stale",
-      message: "A trace changed after geometry generation. Regenerate geometry to update the preview."
-    });
-  }
-
   return warnings;
 }
 
@@ -99,30 +82,81 @@ export function validateCoursePackageReadiness(
   generatedGeometryStale: boolean
 ): CoursePackageReadiness {
   const blockingIssues: string[] = [];
+  const expectedHoleNumbers = getExpectedHoleNumbers(project, draftHolePlan);
+  const expectedHoleSet = new Set(expectedHoleNumbers);
+  const draftHolesByNumber = new Map(
+    draftHolePlan?.holes.map((hole) => [hole.holeNumber, hole]) ?? []
+  );
+  const geometryHoleNumbers = new Set(
+    project?.generatedGeometry?.holes.map((hole) => hole.holeNumber) ?? []
+  );
+  const completeTraces = expectedHoleNumbers.filter((holeNumber) => {
+    const hole = draftHolesByNumber.get(holeNumber);
+    return hole ? hasTrace(hole) : false;
+  }).length;
+  const approvedTraces = expectedHoleNumbers.filter((holeNumber) => {
+    const hole = draftHolesByNumber.get(holeNumber);
+    return hole ? hasTrace(hole) && hole.status === "approved" : false;
+  }).length;
+  const currentGeometry = generatedGeometryStale
+    ? 0
+    : expectedHoleNumbers.filter((holeNumber) => geometryHoleNumbers.has(holeNumber)).length;
 
   if (!project) {
-    blockingIssues.push("No active project.");
+    blockingIssues.push("Select and confirm a course before exporting preview JSON.");
   }
 
   if (project && !project.status.courseConfirmed) {
-    blockingIssues.push("Course is not confirmed.");
+    blockingIssues.push("Confirm the selected course identity before exporting preview JSON.");
   }
 
   if (project && !project.status.locationConfirmed) {
-    blockingIssues.push("Location is not confirmed.");
+    blockingIssues.push("Confirm the course location before exporting preview JSON.");
   }
 
   if (project && !project.status.boundaryConfirmed) {
-    blockingIssues.push("Boundary is not confirmed.");
+    blockingIssues.push("Confirm the course boundary before exporting preview JSON.");
   }
 
-  if (project && !project.generatedGeometry?.holes.length) {
-    blockingIssues.push("Generated geometry preview is missing.");
+  if (!expectedHoleSet.size) {
+    blockingIssues.push("Generate a draft hole plan so expected-hole coverage can be checked.");
+  } else {
+    if (completeTraces < expectedHoleSet.size) {
+      blockingIssues.push(
+        `Save complete traces for all expected holes (${completeTraces}/${expectedHoleSet.size} complete).`
+      );
+    }
+
+    if (approvedTraces < expectedHoleSet.size) {
+      blockingIssues.push(
+        `Review and approve every expected hole trace (${approvedTraces}/${expectedHoleSet.size} approved).`
+      );
+    }
+
+    if (!project?.generatedGeometry?.holes.length) {
+      blockingIssues.push("Generate preview geometry for all expected holes.");
+    } else if (generatedGeometryStale) {
+      blockingIssues.push("Regenerate preview geometry after the latest trace change.");
+    } else if (currentGeometry < expectedHoleSet.size) {
+      blockingIssues.push(
+        `Generate preview geometry for every expected hole (${currentGeometry}/${expectedHoleSet.size} current).`
+      );
+    }
+  }
+
+  if (project?.elevationModel?.status === "stale") {
+    blockingIssues.push("Regenerate or remove the stale elevation model before exporting preview JSON.");
   }
 
   return {
     blockingIssues,
-    warnings: getCoursePackageWarnings(project, draftHolePlan, generatedGeometryStale),
+    warnings: getCoursePackageWarnings(project),
+    coverage: {
+      expectedHoles: expectedHoleSet.size,
+      completeTraces,
+      approvedTraces,
+      currentGeometry
+    },
     canExport: blockingIssues.length === 0
   };
 }
@@ -194,7 +228,7 @@ export function buildCoursePackage(
       geometryStatus: project.geometryStatus,
       locationSource: project.locationSource,
       boundarySource: project.boundary?.source,
-      warnings: getCoursePackageWarnings(project, draftHolePlan, generatedGeometryStale),
+      warnings: getCoursePackageWarnings(project),
       limitations: [
         "Basic geometry preview only.",
         project.elevationModel

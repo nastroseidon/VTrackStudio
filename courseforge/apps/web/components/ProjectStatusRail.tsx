@@ -255,14 +255,8 @@ export function ProjectStatusRail({
       </CollapsibleSection>
 
       <CoursePackagePreviewPanel
-        allHolesTraced={allHolesTraced}
-        draftHolePlanCount={draftHolePlanCount}
-        generatedGeometryHoleCount={generatedGeometryHoleCount}
-        generatedGeometryStale={generatedGeometryStale}
         onExportCoursePackage={onExportCoursePackage}
         readiness={coursePackageReadiness}
-        scorecardConfirmed={Boolean(currentProject?.status.scorecardConfirmed)}
-        tracedHoleCount={tracedHoleCount}
       />
 
       <section className="action-rail-card progress-rail-card" aria-label="Trace progress">
