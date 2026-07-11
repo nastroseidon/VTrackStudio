@@ -230,17 +230,23 @@ export function ProjectStatusRail({
           </label>
         </div>
         {importError ? <p className="inline-error">{importError}</p> : null}
-        {allHolesTraced ? (
+        {draftHolePlanCount > 0 ? (
           <div className="completion-panel">
-            <strong>All holes have traces.</strong>
-            <p>Next: review traces, then generate basic course geometry.</p>
+            <strong>{allHolesTraced ? "All holes have traces." : "Hole trace review"}</strong>
+            <p>
+              {tracedHoleCount > 0
+                ? `${approvedHoleCount} of ${tracedHoleCount} saved traces approved.`
+                : "Save a trace before starting review."}
+            </p>
             <div className="save-action-grid">
               <button className="secondary-action compact-action" onClick={onReviewHoleTraces} type="button">
                 Review Hole Traces
               </button>
-              <button className="secondary-action compact-action" onClick={onGenerateBasicGeometry} type="button">
-                Generate Basic Geometry
-              </button>
+              {allHolesTraced ? (
+                <button className="secondary-action compact-action" onClick={onGenerateBasicGeometry} type="button">
+                  Generate Basic Geometry
+                </button>
+              ) : null}
             </div>
             <p className="soft-status">This creates a visual preview only, not final simulator geometry.</p>
           </div>

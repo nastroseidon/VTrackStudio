@@ -1227,6 +1227,21 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
 }
 
+.trace-review-navigation {
+  display: contents;
+}
+
+.review-tool-row .tray-button {
+  align-items: center;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  line-height: 1.05;
+  min-height: 34px;
+  padding-block: 3px;
+  text-align: center;
+}
+
 .trace-tool-buttons .primary-action,
 .trace-tool-buttons .secondary-action {
   font-size: 11px;
@@ -1282,6 +1297,43 @@ button {
 .trace-summary-grid strong {
   color: var(--green-dark);
   font-size: 10.5px;
+}
+
+@media (min-width: 1081px) and (max-width: 1600px) {
+  .focused-tray-grid {
+    grid-template-columns: minmax(195px, 21fr) minmax(0, 67fr) minmax(108px, 12fr);
+  }
+
+  .trace-workspace-section {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+
+  .hole-circle-row {
+    grid-template-columns: 32px max-content;
+  }
+
+  .hole-circle-list {
+    gap: 1px;
+    grid-template-columns: repeat(9, 22px);
+  }
+
+  .hole-circle {
+    height: 22px;
+    width: 22px;
+  }
+
+  .review-tool-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .trace-summary-section .trace-summary-grid {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .trace-summary-section .trace-summary-grid span,
+  .trace-summary-section .trace-summary-grid strong {
+    white-space: nowrap;
+  }
 }
 
 .tray-header {

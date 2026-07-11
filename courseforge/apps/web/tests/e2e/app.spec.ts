@@ -12,6 +12,69 @@ async function openHoleTracingPanel(page: Page) {
   await expect(page.getByLabel("Hole tracing tools")).toBeVisible();
 }
 
+const savedTrace = {
+  teePoint: { latitude: 41.194, longitude: -85.048 },
+  centerlinePoints: [{ latitude: 41.195, longitude: -85.047 }],
+  greenPoint: { latitude: 41.196, longitude: -85.046 },
+  source: "manual",
+  confidence: 0.8
+};
+
+async function openSavedReviewProject(page: Page, withSavedTraces = true) {
+  const holes = [
+    { holeNumber: 1, status: withSavedTraces ? "trace saved" : "needs tracing", confidence: "low", trace: withSavedTraces ? savedTrace : undefined },
+    { holeNumber: 2, status: "needs tracing", confidence: "low" },
+    { holeNumber: 3, status: withSavedTraces ? "approved" : "needs tracing", confidence: "low", trace: withSavedTraces ? savedTrace : undefined },
+    { holeNumber: 4, status: withSavedTraces ? "needs review" : "needs tracing", confidence: "low", trace: withSavedTraces ? savedTrace : undefined }
+  ];
+  const project = {
+    id: "review-course",
+    name: "Review Course",
+    city: "Fort Wayne",
+    region: "IN",
+    location: { latitude: 41.195, longitude: -85.047 },
+    confidence: 0.9,
+    status: {
+      courseConfirmed: true,
+      locationConfirmed: true,
+      boundaryConfirmed: true,
+      scorecardConfirmed: false,
+      holesTraced: false,
+      elevationGenerated: false,
+      packageExported: false
+    },
+    boundary: {
+      type: "Polygon",
+      source: "manual",
+      coordinates: [[[-85.049, 41.193], [-85.045, 41.193], [-85.045, 41.197], [-85.049, 41.197], [-85.049, 41.193]]]
+    }
+  };
+  const save = {
+    saveVersion: "0.1.0",
+    savedAt: "2026-07-11T12:00:00.000Z",
+    project,
+    selectedCourseId: "cherry-hill-fort-wayne",
+    selectedImportedCourseMetadata: null,
+    autoBuilderOpen: true,
+    draftHolePlan: { generatedAt: "2026-07-11T12:00:00.000Z", source: "placeholder", holes },
+    activeTracingHoleNumber: 1,
+    currentTraceDraft: withSavedTraces ? savedTrace : { centerlinePoints: [], source: "manual", confidence: 0.35 },
+    traceStep: withSavedTraces ? "review" : "tee",
+    boundaryDraftPoints: [],
+    generatedGeometryVisible: true,
+    generatedGeometryStale: false
+  };
+
+  await page.addInitScript((projectSave) => {
+    if (!window.localStorage.getItem("courseforge.projectSave.v0")) {
+      window.localStorage.setItem("courseforge.projectSave.v0", JSON.stringify(projectSave));
+    }
+  }, save);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect(page.getByLabel("Hole tracing tools")).toBeVisible();
+}
+
 test("renders the CourseForge application shell", async ({ page }) => {
   await page.goto("/");
 
@@ -104,4 +167,65 @@ test("keeps the hole tracing panel within the desktop viewport", async ({ page }
   expect(layout.statusRail).not.toBeNull();
   expect(layout.statusRail!.scrollWidth).toBeLessThanOrEqual(layout.statusRail!.clientWidth);
   expect(layout.statusRail!.clientHeight).toBeLessThanOrEqual(layout.viewport.height);
+});
+
+test("reviews, navigates, approves, persists, and reopens saved traces", async ({ page }) => {
+  await openSavedReviewProject(page);
+  await page.getByRole("button", { name: "Review Hole Traces" }).click();
+
+  await expect(page.getByText("Review mode", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("Hole 1");
+  const reviewLayout = await page.getByLabel("Hole tracing tools").evaluate((panel) => ({
+    documentWidth: document.documentElement.scrollWidth,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    panelScrollWidth: panel.scrollWidth,
+    panelClientWidth: panel.clientWidth,
+    panelScrollHeight: panel.scrollHeight,
+    panelClientHeight: panel.clientHeight,
+    panelBottom: panel.getBoundingClientRect().bottom
+  }));
+  expect(reviewLayout.documentWidth).toBeLessThanOrEqual(reviewLayout.viewportWidth);
+  expect(reviewLayout.documentHeight).toBeLessThanOrEqual(reviewLayout.viewportHeight);
+  expect(reviewLayout.panelScrollWidth).toBeLessThanOrEqual(reviewLayout.panelClientWidth);
+  expect(reviewLayout.panelScrollHeight).toBeLessThanOrEqual(reviewLayout.panelClientHeight);
+  expect(reviewLayout.panelBottom).toBeLessThanOrEqual(reviewLayout.viewportHeight);
+
+  if (process.env.COURSEFORGE_SCREENSHOT_DIR) {
+    await page.screenshot({
+      path: `${process.env.COURSEFORGE_SCREENSHOT_DIR}/milestone-16-review-${reviewLayout.viewportWidth}x${reviewLayout.viewportHeight}.png`,
+      fullPage: true
+    });
+  }
+
+  await page.getByRole("button", { name: "Next Saved" }).click();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("Hole 3");
+  await page.getByRole("button", { name: "Previous Saved" }).click();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("Hole 1");
+  await page.getByRole("button", { name: "Next Needing Review" }).click();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("Hole 4");
+
+  await page.getByRole("button", { name: "Approve Trace" }).click();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("approved");
+  await expect(page.getByLabel("Project actions").getByLabel("Trace progress")).toContainText("Approved2");
+
+  await page.waitForTimeout(450);
+  await page.reload();
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("approved");
+
+  await page.getByRole("button", { name: "Review Hole Traces" }).click();
+  await page.getByRole("button", { name: "Reopen & Edit" }).click();
+  await expect(page.getByLabel("Hole trace summary")).toContainText("needs review");
+  await expect(page.getByLabel("Project actions").getByLabel("Trace progress")).toContainText("Approved1");
+  await expect(page.getByRole("button", { name: "Save Trace" })).toBeVisible();
+});
+
+test("keeps review mode closed when no saved traces exist", async ({ page }) => {
+  await openSavedReviewProject(page, false);
+  await page.getByRole("button", { name: "Review Hole Traces" }).click();
+
+  await expect(page.getByText("No saved hole traces are available to review yet.")).toBeVisible();
+  await expect(page.getByText("Review mode", { exact: true })).toHaveCount(0);
 });
