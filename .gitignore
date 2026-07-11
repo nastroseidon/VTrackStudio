@@ -21,6 +21,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Test artifacts
+playwright-report/
+test-results/
+blob-report/
+coverage/
+traces/
+screenshots/
+
 # OS files
 .DS_Store
 

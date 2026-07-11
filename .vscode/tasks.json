@@ -1,0 +1,66 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install dependencies",
+      "type": "shell",
+      "command": "npm ci",
+      "options": { "cwd": "${workspaceFolder}/courseforge/apps/web" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start web development",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/courseforge/apps/web" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Run fast verification",
+      "type": "shell",
+      "command": "npm run verify:fast",
+      "options": { "cwd": "${workspaceFolder}/courseforge/apps/web" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run full verification",
+      "type": "shell",
+      "command": "npm run verify",
+      "options": { "cwd": "${workspaceFolder}/courseforge/apps/web" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run browser tests",
+      "type": "shell",
+      "command": "npm run test:browser",
+      "options": { "cwd": "${workspaceFolder}/courseforge/apps/web" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Docker Compose",
+      "type": "shell",
+      "command": "docker compose up --build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "View Docker logs",
+      "type": "shell",
+      "command": "docker compose logs -f web",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Docker Compose",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

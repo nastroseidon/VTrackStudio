@@ -1,0 +1,18 @@
+services:
+  web:
+    build:
+      context: ./courseforge/apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+      GOOGLE_MAPS_SERVER_API_KEY: ${GOOGLE_MAPS_SERVER_API_KEY:-}
+      GOLFCOURSEAPI_KEY: ${GOLFCOURSEAPI_KEY:-}
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s

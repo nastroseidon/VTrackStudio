@@ -74,18 +74,56 @@ Provider keys are server-side only. Live scorecards, when available later, will 
 
 ## Running the web app
 
-From `courseforge/apps/web`:
+Required software is Node.js 24 with npm. Chromium installed through Playwright is required for browser tests. Docker with Docker Compose v2 is optional for container-based development.
+
+From `courseforge/apps/web`, install the locked dependencies and Chromium:
 
 ```bash
-npm install
+npm ci
+npx playwright install chromium
+```
+
+Start normal local development:
+
+```bash
 npm run dev
 ```
 
-Then open the local URL printed by Next.js, usually `http://localhost:3000`.
+Then open the local URL printed by Next.js, usually `http://localhost:3000`. Stop the server with `Ctrl+C`.
+
+Use the fast check for routine work and the complete check before approval or merge:
+
+```bash
+npm run verify:fast
+npm run verify
+```
+
+The complete check adds Playwright browser coverage to linting, strict type checking, deterministic tests, and the production build. Individual verification and serving commands are:
+
+```bash
+npm run test
+npm run test:browser
+npm run lint
+npm run typecheck
+npm run build
+npm run start
+```
+
+Run `npm run build` before `npm run start`; the latter serves the production build locally and stops with `Ctrl+C`. Neither command deploys the application.
+
+For optional Docker-based development, run these commands from the repository root:
+
+```bash
+docker compose up --build
+docker compose logs -f web
+docker compose down
+```
+
+Normal local development runs Node directly and is the fastest edit/test loop. Docker-based development builds an isolated development image and is useful for checking the documented container workflow. It is not production infrastructure. Use `Ctrl+C` to stop following logs; `docker compose down` stops the service without deleting volumes.
 
 ## Local environment
 
-Create `courseforge/apps/web/.env.local` from the example file:
+For normal host-based development, create `courseforge/apps/web/.env.local` from the example file if optional integrations are needed:
 
 ```bash
 cp .env.example .env.local
@@ -103,6 +141,8 @@ RAPIDAPI_KEY=
 The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` key is client-side because the map runs in the browser and should be restricted by HTTP referrer for local development and any deployed app domains. `GOOGLE_MAPS_SERVER_API_KEY` is server-side only and is used for Google Elevation API requests from API routes. Provider keys are server-side only. The app still runs without these keys and shows disabled provider status where live sources are not configured.
 
 Do not commit `.env.local`; it is ignored by the root `.gitignore`.
+
+Compose accepts the same variable names through environment passthrough and defaults them to empty for keyless local development. Do not bake secrets into the image.
 
 ## Next milestone
 
