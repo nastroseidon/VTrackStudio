@@ -73,6 +73,16 @@ export function getCoursePackageWarnings(
     });
   }
 
+  const savedTracesNeedingReview =
+    draftHolePlan?.holes.filter((hole) => hasTrace(hole) && hole.status !== "approved").length ?? 0;
+
+  if (savedTracesNeedingReview > 0) {
+    warnings.push({
+      code: "hole-traces-need-review",
+      message: `${savedTracesNeedingReview} saved hole ${savedTracesNeedingReview === 1 ? "trace needs" : "traces need"} review.`
+    });
+  }
+
   if (generatedGeometryStale) {
     warnings.push({
       code: "generated-geometry-stale",

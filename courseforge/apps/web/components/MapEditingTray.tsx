@@ -19,6 +19,7 @@ type MapEditingTrayProps = {
   generatedGeometryHoleCount: number;
   generatedGeometryStale: boolean;
   generatedGeometryVisible: boolean;
+  holeTraceReviewMode: boolean;
   isAdjustingLocation: boolean;
   isDrawingBoundary: boolean;
   onApproveTrace: () => void;
@@ -31,12 +32,15 @@ type MapEditingTrayProps = {
   onConfirmBoundary: () => void;
   onConfirmLocation: () => void;
   onGenerateDraftHolePlan: () => void;
+  onExitHoleTraceReview: () => void;
   onGenerateBasicGeometry: () => void;
   onOpenAutoBuilder: () => void;
   onSaveHoleTrace: () => void;
   onSelectDraftHole: (holeNumber: number) => void;
   onEditTrace: () => void;
   onNextUntracedHole: () => void;
+  onMoveSavedTrace: (direction: "previous" | "next") => void;
+  onNextTraceNeedingReview: () => void;
   onSetTraceGreenStep: () => void;
   onStartAdjustLocation: () => void;
   onStartHoleTrace: (holeNumber: number) => void;
@@ -89,6 +93,7 @@ export function MapEditingTray({
   generatedGeometryHoleCount,
   generatedGeometryStale,
   generatedGeometryVisible,
+  holeTraceReviewMode,
   isAdjustingLocation,
   isDrawingBoundary,
   onApproveTrace,
@@ -101,12 +106,15 @@ export function MapEditingTray({
   onConfirmBoundary,
   onConfirmLocation,
   onGenerateDraftHolePlan,
+  onExitHoleTraceReview,
   onGenerateBasicGeometry,
   onOpenAutoBuilder,
   onSaveHoleTrace,
   onSelectDraftHole,
   onEditTrace,
   onNextUntracedHole,
+  onMoveSavedTrace,
+  onNextTraceNeedingReview,
   onSetTraceGreenStep,
   onStartAdjustLocation,
   onStartHoleTrace,
@@ -165,7 +173,13 @@ export function MapEditingTray({
         <div className="focused-tray-header">
           <span className="section-label">Hole tracing</span>
           <div className="tray-status">
-            {tracingModeActive ? (traceStep === "green" ? "Placing green" : "Tracing active") : "Choose a hole"}
+            {holeTraceReviewMode
+              ? "Review mode"
+              : tracingModeActive
+                ? traceStep === "green"
+                  ? "Placing green"
+                  : "Tracing active"
+                : "Choose a hole"}
           </div>
           <div className="trace-progress-line">
             Progress: {tracedHoleCount} of {draftHolePlan.holes.length} traced · {approvedHoleCount} approved ·{" "}
@@ -221,7 +235,7 @@ export function MapEditingTray({
                 <strong>Hole {activeHole.holeNumber}</strong>
               </div>
               <div className="trace-tool-buttons">
-                <div className="trace-tool-row primary-tool-row">
+                {!holeTraceReviewMode ? <div className="trace-tool-row primary-tool-row">
                   <button
                     className={`secondary-action tray-button ${
                       tracingModeActive && traceStep !== "green" ? "active-action" : ""
@@ -249,8 +263,8 @@ export function MapEditingTray({
                   >
                     Save Trace
                   </button>
-                </div>
-                <div className="trace-tool-row secondary-tool-row">
+                </div> : null}
+                {!holeTraceReviewMode ? <div className="trace-tool-row secondary-tool-row">
                   <button className="secondary-action tray-button" onClick={onClearCurrentTrace} type="button">
                     Clear Draft
                   </button>
@@ -260,23 +274,46 @@ export function MapEditingTray({
                   <button className="secondary-action tray-button" onClick={onNextUntracedHole} type="button">
                     Next Untraced
                   </button>
-                </div>
+                </div> : null}
                 {activeHole.trace || canShowGeometryAction ? (
                   <div className="trace-tool-row review-tool-row">
+                    {holeTraceReviewMode ? (
+                      <div className="trace-review-navigation" aria-label="Hole trace review navigation">
+                        <button className="secondary-action tray-button" onClick={() => onMoveSavedTrace("previous")} type="button">
+                          Previous Saved
+                        </button>
+                        <button className="secondary-action tray-button" onClick={() => onMoveSavedTrace("next")} type="button">
+                          Next Saved
+                        </button>
+                        <button className="primary-action tray-button" onClick={onNextTraceNeedingReview} type="button">
+                          Next Needing Review
+                        </button>
+                        <button className="secondary-action tray-button" onClick={onExitHoleTraceReview} type="button">
+                          Exit Review
+                        </button>
+                      </div>
+                    ) : null}
                     {activeHole.trace ? (
                       <>
-                        <button className="secondary-action tray-button" onClick={onApproveTrace} type="button">
-                          {canApproveTrace ? "Approve" : "Approved"}
+                        <button
+                          className="secondary-action tray-button"
+                          disabled={!canApproveTrace || activeHole.status === "approved"}
+                          onClick={onApproveTrace}
+                          type="button"
+                        >
+                          {activeHole.status === "approved" ? "Approved" : "Approve Trace"}
                         </button>
                         <button className="secondary-action tray-button" onClick={onEditTrace} type="button">
-                          Edit
+                          {activeHole.status === "approved" ? "Reopen & Edit" : "Edit Trace"}
                         </button>
-                        <button className="secondary-action tray-button" onClick={onClearHoleTrace} type="button">
-                          Clear Saved
-                        </button>
+                        {!holeTraceReviewMode ? (
+                          <button className="secondary-action tray-button" onClick={onClearHoleTrace} type="button">
+                            Clear Saved
+                          </button>
+                        ) : null}
                       </>
                     ) : null}
-                    {canShowGeometryAction ? (
+                    {canShowGeometryAction && !holeTraceReviewMode ? (
                       <button
                         className="primary-action save-trace-button"
                         disabled={!canGenerateGeometry}
@@ -286,7 +323,7 @@ export function MapEditingTray({
                         {generatedGeometryExists ? "Regenerate" : "Generate Geometry"}
                       </button>
                     ) : null}
-                    {generatedGeometryExists ? (
+                    {generatedGeometryExists && !holeTraceReviewMode ? (
                       <button className="secondary-action tray-button" onClick={onToggleGeneratedGeometry} type="button">
                         {generatedGeometryVisible ? "Hide Geometry" : "Show Geometry"}
                       </button>

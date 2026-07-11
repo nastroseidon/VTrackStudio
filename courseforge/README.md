@@ -13,7 +13,9 @@ CourseForge is the future course-builder app and toolchain for VTrackStudio.
 
 ## Current milestone
 
-This milestone adds a map-first CourseForge web app shell with mock course data, provider-backed imports, interactive project state, boundary tools, scorecard review, Satellite Auto-Builder prep, manual hole tracing, basic geometry preview, mock elevation/topology foundation, and MVP project save/resume support. Users can draw a manual boundary by clicking points on the map, use Auto Boundary to create a simple square estimate around the selected course, save their work locally while tracing holes, generate simple visual tee/fairway/green preview shapes from saved traces, and generate a deterministic mock elevation profile for future package context.
+**Milestone 16 — Hole Trace Review** adds a focused workflow for evaluating, approving, reopening, and navigating saved manual hole traces. Review state persists through the existing browser save, resume, and project-file workflows. See [docs/ROADMAP.md](docs/ROADMAP.md) for the official scope and exclusions.
+
+The current app also includes a map-first shell with mock course data, provider-backed imports, interactive project state, boundary tools, scorecard review, Satellite Auto-Builder prep, manual hole tracing, basic geometry preview, mock elevation/topology foundation, and MVP project save/resume support. Users can draw a manual boundary by clicking points on the map, use Auto Boundary to create a simple square estimate around the selected course, save their work locally while tracing holes, generate simple visual tee/fairway/green preview shapes from saved traces, and generate a deterministic mock elevation profile for future package context.
 
 It does not call Places search, use Earth Engine, run scorecard AI, generate final playable geometry, export real course packages, use cloud persistence, or import anything into Unreal.
 
@@ -144,6 +146,6 @@ Do not commit `.env.local`; it is ignored by the root `.gitignore`.
 
 Compose accepts the same variable names through environment passthrough and defaults them to empty for keyless local development. Do not bake secrets into the image.
 
-## Next milestone
+## Roadmap
 
-The next milestone can replace the mock search results with a more complete prototype flow while still keeping real Places search, Earth Engine, scorecard AI, and Unreal import logic out until those integrations are intentionally designed.
+Future milestones may expand provider-backed search, terrain generation, neutral package contents, and Unreal import only after their product, licensing, cost, and architecture decisions are approved. See [docs/ROADMAP.md](docs/ROADMAP.md).

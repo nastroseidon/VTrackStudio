@@ -11,11 +11,7 @@ VTrackStudio is the parent workspace for the VTrack golf simulator ecosystem. It
 
 ## Current milestone
 
-This first milestone is structure only. It creates safe folders and planning documents without changing simulator gameplay code, adding real Google APIs, implementing Earth Engine, or building the Unreal importer.
-
-## Next milestone
-
-The next milestone will be a mock CourseForge web app shell that demonstrates the intended course-building flow without real external integrations.
+CourseForge is implementing **Milestone 16 — Hole Trace Review**, a focused workflow for evaluating, approving, reopening, and navigating saved manual hole traces. See the [CourseForge roadmap](courseforge/docs/ROADMAP.md) for scope and exclusions.
 
 ## Development setup
 

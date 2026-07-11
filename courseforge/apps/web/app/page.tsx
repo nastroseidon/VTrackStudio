@@ -16,6 +16,13 @@ import {
   markElevationModelStale
 } from "../lib/elevation/elevation-service";
 import { generateBasicCourseGeometry } from "../lib/geometry/generate-basic-hole-geometry";
+import {
+  approveHoleTrace,
+  findAdjacentSavedTrace,
+  findNextTraceNeedingReview,
+  findReviewStartHole,
+  getHoleTraceProgress
+} from "../lib/hole-trace-review";
 import type {
   CourseBoundary,
   CourseElevationModel,
@@ -241,6 +248,7 @@ export default function Home() {
   const [generatedGeometryVisible, setGeneratedGeometryVisible] = useState(true);
   const [elevationSamplesVisible, setElevationSamplesVisible] = useState(false);
   const [generatedGeometryStale, setGeneratedGeometryStale] = useState(false);
+  const [holeTraceReviewMode, setHoleTraceReviewMode] = useState(false);
   const saveTimeoutRef = useRef<number | null>(null);
 
   const selectedMockCourse = useMemo(
@@ -251,9 +259,10 @@ export default function Home() {
 
   const projectStatus = currentProject?.status ?? initialStatus;
   const focusedTracingMode = Boolean(autoBuilderOpen && draftHolePlan);
-  const tracedHoleCount = draftHolePlan?.holes.filter(hasSavedOrApprovedTrace).length ?? 0;
-  const approvedHoleCount = draftHolePlan?.holes.filter((hole) => hole.status === "approved" && hole.trace).length ?? 0;
-  const remainingHoleCount = Math.max((draftHolePlan?.holes.length ?? 0) - tracedHoleCount, 0);
+  const traceProgress = getHoleTraceProgress(draftHolePlan);
+  const tracedHoleCount = traceProgress.traced;
+  const approvedHoleCount = traceProgress.approved;
+  const remainingHoleCount = traceProgress.remaining;
   const activeHoleStatus =
     draftHolePlan?.holes.find((hole) => hole.holeNumber === activeTracingHoleNumber)?.status ?? "none";
   const allHolesTraced = Boolean(draftHolePlan?.holes.length && tracedHoleCount === draftHolePlan.holes.length);
@@ -469,8 +478,67 @@ export default function Home() {
     reader.readAsText(file);
   };
 
+  const selectReviewHole = (hole: DraftHole) => {
+    setActiveTracingHoleNumber(hole.holeNumber);
+    setCurrentTraceDraft(hole.trace ?? createEmptyTrace());
+    setTracingModeActive(false);
+    setTraceStep("review");
+  };
+
   const handleReviewHoleTraces = () => {
-    setDraftMessage("Hole trace review will be added in the next review milestone.");
+    if (!draftHolePlan) {
+      setDraftMessage("Create a draft hole plan and save a trace before starting review.");
+      return;
+    }
+
+    const reviewHole = findReviewStartHole(draftHolePlan, activeTracingHoleNumber);
+
+    if (!reviewHole) {
+      setHoleTraceReviewMode(false);
+      setDraftMessage("No saved hole traces are available to review yet.");
+      return;
+    }
+
+    selectReviewHole(reviewHole);
+    setHoleTraceReviewMode(true);
+    setDraftMessage(`Reviewing hole ${reviewHole.holeNumber}. Approve it or reopen it for editing.`);
+  };
+
+  const handleExitHoleTraceReview = () => {
+    setHoleTraceReviewMode(false);
+    setDraftMessage("Hole trace review closed.");
+  };
+
+  const handleMoveSavedTrace = (direction: "previous" | "next") => {
+    if (!draftHolePlan) {
+      return;
+    }
+
+    const reviewHole = findAdjacentSavedTrace(draftHolePlan, activeTracingHoleNumber, direction);
+
+    if (!reviewHole) {
+      setDraftMessage(`No ${direction} saved trace is available.`);
+      return;
+    }
+
+    selectReviewHole(reviewHole);
+    setDraftMessage(`Reviewing hole ${reviewHole.holeNumber}.`);
+  };
+
+  const handleNextTraceNeedingReview = () => {
+    if (!draftHolePlan) {
+      return;
+    }
+
+    const reviewHole = findNextTraceNeedingReview(draftHolePlan, activeTracingHoleNumber);
+
+    if (!reviewHole) {
+      setDraftMessage("Every saved hole trace is approved.");
+      return;
+    }
+
+    selectReviewHole(reviewHole);
+    setDraftMessage(`Hole ${reviewHole.holeNumber} is the next trace needing review.`);
   };
 
   const handleGenerateBasicGeometry = () => {
@@ -1049,8 +1117,15 @@ export default function Home() {
   };
 
   const handleSelectDraftHole = (holeNumber: number) => {
+    const selectedHole = draftHolePlan?.holes.find((hole) => hole.holeNumber === holeNumber);
+
+    if (holeTraceReviewMode && !selectedHole?.trace) {
+      setDraftMessage(`Hole ${holeNumber} has no saved trace to review.`);
+      return;
+    }
+
     setActiveTracingHoleNumber(holeNumber);
-    const savedTrace = draftHolePlan?.holes.find((hole) => hole.holeNumber === holeNumber)?.trace;
+    const savedTrace = selectedHole?.trace;
     setCurrentTraceDraft(savedTrace ?? createEmptyTrace());
     setTracingModeActive(false);
     setTraceStep(savedTrace?.greenPoint ? "review" : "tee");
@@ -1126,22 +1201,18 @@ export default function Home() {
         return plan;
       }
 
-      const holes = plan.holes.map((hole) =>
-        hole.holeNumber === activeTracingHoleNumber ? { ...hole, status: "approved" as const } : hole
-      );
+      const updatedPlan = approveHoleTrace(plan, activeTracingHoleNumber);
+      const holes = updatedPlan.holes;
 
       approvedAllHoles = updateHolesTracedStatus(holes);
 
-      return {
-        ...plan,
-        holes
-      };
+      return updatedPlan;
     });
     setTracingModeActive(false);
     setTraceStep("review");
     setDraftMessage(
       approvedAllHoles
-        ? "All holes have traces. Next: review traces, then generate basic course geometry."
+        ? "All holes have traces. Continue review until each saved trace is approved."
         : `Hole ${activeTracingHoleNumber} trace approved.`
     );
   };
@@ -1159,6 +1230,7 @@ export default function Home() {
     }
 
     setCurrentTraceDraft(savedTrace);
+    setHoleTraceReviewMode(false);
     markGeneratedGeometryStale();
     setTracingModeActive(true);
     setTraceStep(savedTrace.greenPoint ? "review" : savedTrace.teePoint ? "centerline" : "tee");
@@ -1454,6 +1526,7 @@ export default function Home() {
           generatedGeometryHoleCount={generatedGeometryHoleCount}
           generatedGeometryStale={generatedGeometryStale}
           generatedGeometryVisible={generatedGeometryVisible}
+          holeTraceReviewMode={holeTraceReviewMode}
           isAdjustingLocation={isAdjustingLocation}
           isDrawingBoundary={isDrawingBoundary}
           onApproveTrace={handleApproveTrace}
@@ -1467,11 +1540,14 @@ export default function Home() {
           onConfirmLocation={handleConfirmLocation}
           onGenerateBasicGeometry={handleGenerateBasicGeometry}
           onGenerateDraftHolePlan={handleGenerateDraftHolePlan}
+          onExitHoleTraceReview={handleExitHoleTraceReview}
           onOpenAutoBuilder={handleOpenAutoBuilder}
           onSaveHoleTrace={handleSaveHoleTrace}
           onSelectDraftHole={handleSelectDraftHole}
           onEditTrace={handleEditTrace}
           onNextUntracedHole={handleNextUntracedHole}
+          onMoveSavedTrace={handleMoveSavedTrace}
+          onNextTraceNeedingReview={handleNextTraceNeedingReview}
           onSetTraceGreenStep={handleSetTraceGreenStep}
           onStartAdjustLocation={handleStartAdjustLocation}
           onStartHoleTrace={handleStartHoleTrace}
