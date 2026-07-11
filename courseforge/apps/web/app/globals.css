@@ -66,6 +66,8 @@ button {
 
 .status-rail {
   border-width: 0 0 0 1px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .brand-block {
@@ -521,7 +523,11 @@ button {
 .status-rail .compact-action {
   font-size: 12px;
   min-height: 34px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 7px 9px;
+  white-space: normal;
+  width: 100%;
 }
 
 .provider-results {
@@ -971,6 +977,7 @@ button {
 }
 
 .focused-tracing-tray {
+  gap: 3px;
   max-height: 188px;
   overflow: hidden;
   padding: 5px 8px 7px;
@@ -1001,6 +1008,12 @@ button {
   line-height: 1;
 }
 
+.focused-tray-header .tray-status {
+  font-size: 10.5px;
+  min-height: 24px;
+  padding: 3px 8px;
+}
+
 .focused-tray-message {
   background: #fff8e8;
   border: 1px solid #ead29d;
@@ -1010,9 +1023,9 @@ button {
   line-height: 1.2;
   grid-column: 1 / -1;
   margin: 0;
-  max-height: 22px;
+  max-height: 19px;
   overflow: hidden;
-  padding: 3px 6px;
+  padding: 2px 6px;
 }
 
 .trace-progress-line {
@@ -1029,7 +1042,7 @@ button {
 .focused-tray-grid {
   display: grid;
   gap: 6px;
-  grid-template-columns: minmax(160px, 18fr) minmax(610px, 66fr) minmax(135px, 16fr);
+  grid-template-columns: minmax(150px, 18fr) minmax(0, 66fr) minmax(120px, 16fr);
   min-height: 0;
 }
 
@@ -1037,7 +1050,7 @@ button {
   align-content: start;
   align-items: start;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   grid-template-columns: max-content minmax(0, 1fr);
 }
 
@@ -1549,7 +1562,16 @@ button {
   display: grid;
   gap: 7px;
   margin-top: 8px;
+  min-width: 0;
   padding: 9px;
+}
+
+.action-rail-card > * {
+  min-width: 0;
+}
+
+.action-rail-card p {
+  overflow-wrap: anywhere;
 }
 
 .rail-card-heading {
@@ -1595,6 +1617,11 @@ button {
   border-color: #cdddea;
 }
 
+.geometry-rail-card .rail-card-heading span {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
 .geometry-rail-card p,
 .elevation-rail-card p {
   color: var(--water);
@@ -1619,6 +1646,7 @@ button {
 .elevation-action-grid {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .elevation-summary-card {
@@ -1627,6 +1655,7 @@ button {
   border-radius: 8px;
   display: grid;
   gap: 7px;
+  min-width: 0;
   padding: 8px;
 }
 
