@@ -62,7 +62,7 @@ The root `compose.yaml` and `courseforge/apps/web/Dockerfile` are development-on
 
 Reusable VS Code tasks in `.vscode/tasks.json` invoke the same documented npm and Compose commands used in terminals rather than duplicating workflow logic.
 
-## Git workflow
+## Protected-style branch and pull request workflow
 
 `main` is the stable branch. GitHub rulesets are configured for `main`, but GitHub does not enforce them for this private repository on the current plan. Treat this protected-style workflow as mandatory repository policy even when GitHub technically permits an action. In particular, a direct push to `main` is never acceptable merely because GitHub allows it.
 
@@ -78,7 +78,7 @@ Do not implement routine features, fixes, refactors, tests, or UI changes direct
    - `test/<short-description>`
    - `chore/<short-description>`
 
-Additional Git requirements:
+Branch and pull request requirements:
 
 - Keep commits focused and do not mix unrelated cleanup with requested work.
 - Run `npm run verify` from `courseforge/apps/web/` before presenting implementation work as merge-ready.
