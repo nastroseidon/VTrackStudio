@@ -8,7 +8,6 @@ import {
   getHoleTraceProgress,
   reopenHoleTrace
 } from "../../lib/hole-trace-review";
-import { getCoursePackageWarnings } from "../../lib/course-package/build-course-package";
 
 const trace = {
   teePoint: { latitude: 41.1, longitude: -85.1 },
@@ -37,10 +36,7 @@ describe("hole trace review", () => {
 
     expect(approved.holes[0].status).toBe("approved");
     expect(getHoleTraceProgress(approved)).toEqual({ traced: 3, approved: 2, remaining: 1 });
-    expect(getCoursePackageWarnings(null, approved, false)).toContainEqual({
-      code: "hole-traces-need-review",
-      message: "1 saved hole trace needs review."
-    });
+    expect(approved.holes[3].status).toBe("needs review");
   });
 
   it("reopens an approved trace without changing its geometry", () => {

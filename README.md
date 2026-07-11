@@ -11,7 +11,7 @@ VTrackStudio is the parent workspace for the VTrack golf simulator ecosystem. It
 
 ## Current milestone
 
-CourseForge is implementing **Milestone 16 — Hole Trace Review**, a focused workflow for evaluating, approving, reopening, and navigating saved manual hole traces. See the [CourseForge roadmap](courseforge/docs/ROADMAP.md) for scope and exclusions.
+CourseForge is implementing **Milestone 17 — Course Package Readiness Gate**, a deterministic quality gate for its current neutral preview JSON export. See the [CourseForge roadmap](courseforge/docs/ROADMAP.md) for scope and exclusions.
 
 ## Development setup
 

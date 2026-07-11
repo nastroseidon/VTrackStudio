@@ -441,7 +441,7 @@ export default function Home() {
         packageExported: true
       }
     });
-    setDraftMessage("Course Package JSON exported. This is a neutral preview package, not an Unreal import.");
+    setDraftMessage("Preview JSON exported. This is a neutral preview artifact, not simulator-ready output or an Unreal import.");
   };
 
   const handleImportProject = (event: ChangeEvent<HTMLInputElement>) => {

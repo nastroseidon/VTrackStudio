@@ -6,10 +6,6 @@ This folder will hold generated and sample CourseForge course packages.
 
 - `samples/` is reserved for safe sample packages and fixtures.
 
-## Current milestone
+## Current state
 
-This first milestone is structure only. No real generated course packages are included yet.
-
-## Next milestone
-
-The next milestone will add mock CoursePackage examples after the CourseForge web app shell has a placeholder export flow.
+No generated CoursePackage artifacts are committed here yet. The CourseForge web app can download a single neutral preview JSON file after its dynamic readiness gate passes, but that preview is not simulator-ready and is not the future multi-file CoursePackage format.

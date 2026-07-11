@@ -13,7 +13,7 @@ CourseForge is the future course-builder app and toolchain for VTrackStudio.
 
 ## Current milestone
 
-**Milestone 16 — Hole Trace Review** adds a focused workflow for evaluating, approving, reopening, and navigating saved manual hole traces. Review state persists through the existing browser save, resume, and project-file workflows. See [docs/ROADMAP.md](docs/ROADMAP.md) for the official scope and exclusions.
+**Milestone 17 — Course Package Readiness Gate** dynamically checks confirmed project prerequisites, complete and approved hole traces, current preview geometry coverage, and stale elevation before enabling neutral preview JSON export. Missing elevation and unconfirmed scorecard data remain warnings. Readiness is not persisted and does not change the CoursePackage schema. See [docs/ROADMAP.md](docs/ROADMAP.md) for the official scope and exclusions.
 
 The current app also includes a map-first shell with mock course data, provider-backed imports, interactive project state, boundary tools, scorecard review, Satellite Auto-Builder prep, manual hole tracing, basic geometry preview, mock elevation/topology foundation, and MVP project save/resume support. Users can draw a manual boundary by clicking points on the map, use Auto Boundary to create a simple square estimate around the selected course, save their work locally while tracing holes, generate simple visual tee/fairway/green preview shapes from saved traces, and generate a deterministic mock elevation profile for future package context.
 
@@ -55,10 +55,10 @@ Local saves are browser/device-specific. There is no database, account system, S
 
 ## Course package export preview
 
-CourseForge can also export a neutral Course Package JSON after the course, location, boundary, and generated geometry preview are ready. This is different from `Export Project File`:
+CourseForge can also export neutral preview JSON after the course, location, boundary, hole traces, trace approvals, and generated geometry preview pass the readiness gate. This is different from `Export Project File`:
 
 - `Export Project File` is a CourseForge backup/resume file.
-- `Export Course Package JSON` is a clean package preview intended as a future handoff format.
+- `Export Preview JSON` is a clean, neutral preview intended to inform a future handoff format. It is not simulator-ready.
 
 The Course Package JSON includes course identity, location, boundary, scorecard data when available, hole traces, generated preview geometry, mock elevation metadata when generated, warnings, and limitations. It does not include API keys, local browser save metadata, real terrain heightmaps, final playable geometry, Unreal assets, or Unreal import logic.
 
