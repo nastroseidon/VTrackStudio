@@ -64,11 +64,40 @@ Reusable VS Code tasks in `.vscode/tasks.json` invoke the same documented npm an
 
 ## Git workflow
 
-- Work on the current user-selected branch unless asked to create another. If creating one, use the `codex/` prefix by default.
+`main` is the stable branch. GitHub rulesets are configured for `main`, but GitHub does not enforce them for this private repository on the current plan. Treat this protected-style workflow as mandatory repository policy even when GitHub technically permits an action. In particular, a direct push to `main` is never acceptable merely because GitHub allows it.
+
+Do not implement routine features, fixes, refactors, tests, or UI changes directly on `main`. Before beginning an implementation task:
+
+1. Run `git status` and confirm the working tree is clean. If it is not clean, preserve the existing work and stop for user direction rather than switching branches or discarding changes.
+2. Check out `main`.
+3. Fetch `origin`.
+4. Confirm local `main` is current with `origin/main`.
+5. Create and check out a short, descriptive task branch using exactly one of these forms:
+   - `feature/<short-description>`
+   - `fix/<short-description>`
+   - `test/<short-description>`
+   - `chore/<short-description>`
+
+Additional Git requirements:
+
 - Keep commits focused and do not mix unrelated cleanup with requested work.
+- Run `npm run verify` from `courseforge/apps/web/` before presenting implementation work as merge-ready.
+- Stop before committing unless the user explicitly approved committing.
+- Do not push, open a pull request, merge, or delete a branch without explicit user approval.
+- Always stop before merging into `main`, even when earlier approval covered committing, pushing, or opening a pull request.
+- Prefer **Squash and merge** for GitHub pull requests.
 - Do not rewrite history, force-push, discard user changes, or use destructive Git commands without explicit approval.
-- Do not commit, push, open a pull request, merge, tag, or publish unless the user requests that action.
 - Never commit secrets, local environment files, generated dependency folders, `.next/`, logs, or Unreal generated directories.
+
+At completion, report:
+
+- current branch;
+- files changed;
+- commits created, or state that none were created;
+- verification commands and results;
+- recommended commit message;
+- recommended pull request title;
+- recommended pull request description.
 
 ## Approval boundaries
 
