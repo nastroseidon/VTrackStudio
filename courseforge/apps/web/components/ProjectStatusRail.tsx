@@ -51,6 +51,7 @@ type ProjectStatusRailProps = {
   isDrawingBoundary: boolean;
   lastSavedAt: string | null;
   onExportCoursePackage: () => void;
+  onDownloadCourseBundle: () => void;
   onExportProject: () => void;
   onGenerateGoogleElevationProfile: () => void;
   onGenerateCopernicusElevationProfile: () => void;
@@ -97,6 +98,7 @@ export function ProjectStatusRail({
   isDrawingBoundary,
   lastSavedAt,
   onExportCoursePackage,
+  onDownloadCourseBundle,
   onExportProject,
   onGenerateGoogleElevationProfile,
   onGenerateCopernicusElevationProfile,
@@ -258,6 +260,7 @@ export function ProjectStatusRail({
 
       <CoursePackagePreviewPanel
         onExportCoursePackage={onExportCoursePackage}
+        onDownloadCourseBundle={onDownloadCourseBundle}
         readiness={coursePackageReadiness}
       />
 

@@ -248,6 +248,9 @@ export default function Home() {
   const [generatedGeometryVisible, setGeneratedGeometryVisible] = useState(true);
   const [elevationSamplesVisible, setElevationSamplesVisible] = useState(false);
   const [generatedGeometryStale, setGeneratedGeometryStale] = useState(false);
+  // Cached Copernicus heightmap PNG (base64) from the last generation, for an
+  // instant bundle export without re-fetching. Not persisted (memory only).
+  const copernicusHeightmapB64Ref = useRef<string | null>(null);
   const [holeTraceReviewMode, setHoleTraceReviewMode] = useState(false);
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -444,6 +447,55 @@ export default function Home() {
     setDraftMessage("Preview JSON exported. This is a neutral preview artifact, not simulator-ready output or an Unreal import.");
   };
 
+  const handleDownloadCourseBundle = async () => {
+    if (!currentProject || !coursePackageReadiness.canExport) {
+      return;
+    }
+
+    setDraftMessage("Building course bundle (.zip)…");
+    const exportedAt = new Date().toISOString();
+    try {
+      const response = await fetch("/api/course-package/bundle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project: currentProject,
+          draftHolePlan,
+          generatedGeometryStale,
+          exportedAt,
+          heightmapPngBase64: copernicusHeightmapB64Ref.current ?? undefined
+        })
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        setDraftMessage(data.error ?? "Course bundle could not be generated.");
+        return;
+      }
+
+      const blob = await response.blob();
+      const projectSlug = safeProjectFileName(currentProject.name) || "project";
+      const dateSlug = exportedAt.slice(0, 10);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `courseforge-bundle-${projectSlug}-${dateSlug}.zip`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setCurrentProject({
+        ...currentProject,
+        status: {
+          ...currentProject.status,
+          packageExported: true
+        }
+      });
+      setDraftMessage("Course bundle (.zip) downloaded — neutral package JSON plus any heightmap artifact.");
+    } catch {
+      setDraftMessage("Course bundle could not be generated right now.");
+    }
+  };
+
   const handleImportProject = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -588,7 +640,9 @@ export default function Home() {
           source
         })
       });
-      const data = (await response.json()) as CourseElevationModel | { error?: string };
+      const data = (await response.json()) as
+        | (CourseElevationModel & { heightmapPngBase64?: string })
+        | { error?: string };
       const errorMessage = "error" in data ? data.error : undefined;
 
       if (!response.ok || errorMessage) {
@@ -596,9 +650,15 @@ export default function Home() {
         return;
       }
 
+      const { heightmapPngBase64, ...elevationModel } = data as CourseElevationModel & {
+        heightmapPngBase64?: string;
+      };
+      // Cache heightmap bytes only for the Copernicus source; clear otherwise.
+      copernicusHeightmapB64Ref.current = source === "copernicus_glo30" ? heightmapPngBase64 ?? null : null;
+
       setCurrentProject({
         ...currentProject,
-        elevationModel: data as CourseElevationModel,
+        elevationModel: elevationModel as CourseElevationModel,
         status: {
           ...currentProject.status,
           elevationGenerated: true
@@ -1598,6 +1658,7 @@ export default function Home() {
         clientSaveReady={clientSaveReady}
         onExportProject={handleExportProject}
         onExportCoursePackage={handleExportCoursePackage}
+        onDownloadCourseBundle={handleDownloadCourseBundle}
         onGenerateMockElevationProfile={handleGenerateMockElevationProfile}
         onGenerateGoogleElevationProfile={handleGenerateGoogleElevationProfile}
         onGenerateCopernicusElevationProfile={handleGenerateCopernicusElevationProfile}

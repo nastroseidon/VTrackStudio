@@ -53,9 +53,11 @@ export async function POST(request: Request) {
       // Live Copernicus GLO-30 fetch (open data, keyless). Raw heightmap bytes
       // are returned to the caller but only the descriptor is sent to the client
       // here; byte packaging is a later milestone.
-      const { model } = await generateCopernicusElevationModel(body.project.boundary);
+      const { model, heightmapBytes } = await generateCopernicusElevationModel(body.project.boundary);
 
-      return NextResponse.json(model);
+      // Return the descriptor plus the PNG bytes (base64) so the client can cache
+      // them for an instant bundle export without a second live fetch.
+      return NextResponse.json({ ...model, heightmapPngBase64: Buffer.from(heightmapBytes).toString("base64") });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Copernicus GLO-30 heightmap could not be generated.";

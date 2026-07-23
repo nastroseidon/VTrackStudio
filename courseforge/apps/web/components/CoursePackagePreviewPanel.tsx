@@ -2,11 +2,13 @@ import type { CoursePackageReadiness } from "../lib/course-package/build-course-
 
 type CoursePackagePreviewPanelProps = {
   onExportCoursePackage: () => void;
+  onDownloadCourseBundle: () => void;
   readiness: CoursePackageReadiness;
 };
 
 export function CoursePackagePreviewPanel({
   onExportCoursePackage,
+  onDownloadCourseBundle,
   readiness
 }: CoursePackagePreviewPanelProps) {
   const { coverage } = readiness;
@@ -37,7 +39,15 @@ export function CoursePackagePreviewPanel({
       >
         Export Preview JSON
       </button>
-      <p className="soft-status">Neutral preview JSON only. This is not a simulator-ready package or a Project File backup.</p>
+      <button
+        className="secondary-action compact-action"
+        disabled={!readiness.canExport}
+        onClick={onDownloadCourseBundle}
+        type="button"
+      >
+        Download Course Bundle (.zip)
+      </button>
+      <p className="soft-status">Neutral preview JSON only. This is not a simulator-ready package or a Project File backup. The bundle adds any heightmap artifact.</p>
       {readiness.blockingIssues.length > 0 ? (
         <section className="package-readiness-details" aria-label="Preview export blocking issues">
           <strong>Complete these next</strong>
