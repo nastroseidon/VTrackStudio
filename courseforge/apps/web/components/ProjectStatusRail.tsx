@@ -53,6 +53,7 @@ type ProjectStatusRailProps = {
   onExportCoursePackage: () => void;
   onExportProject: () => void;
   onGenerateGoogleElevationProfile: () => void;
+  onGenerateCopernicusElevationProfile: () => void;
   onGenerateMockElevationProfile: () => void;
   onGenerateBasicGeometry: () => void;
   onToggleElevationSamples: () => void;
@@ -98,6 +99,7 @@ export function ProjectStatusRail({
   onExportCoursePackage,
   onExportProject,
   onGenerateGoogleElevationProfile,
+  onGenerateCopernicusElevationProfile,
   onGenerateMockElevationProfile,
   onGenerateBasicGeometry,
   onToggleElevationSamples,
@@ -311,11 +313,28 @@ export function ProjectStatusRail({
           <p className="elevation-warning-copy">Elevation may be stale. Regenerate after boundary/trace changes.</p>
         ) : (
           <p>
-            {elevationModel?.source === "google_elevation"
-              ? "Sampled from Google Elevation. No terrain heightmap yet."
-              : "Mock/sample elevation only. Not real terrain yet."}
+            {elevationModel?.source === "copernicus_glo30"
+              ? "Real terrain heightmap from Copernicus GLO-30 open DEM data."
+              : elevationModel?.source === "google_elevation"
+                ? "Sampled from Google Elevation. No terrain heightmap yet."
+                : "Mock/sample elevation only. Not real terrain yet."}
           </p>
         )}
+        {elevationModel?.heightmap ? (
+          <div className="rail-compact-grid" aria-label="Heightmap raster">
+            <span>Heightmap</span>
+            <strong>
+              {elevationModel.heightmap.width}×{elevationModel.heightmap.height} ({elevationModel.heightmap.format})
+            </strong>
+            <span>Ground res</span>
+            <strong>{elevationModel.heightmap.metersPerPixel.toFixed(1)} m/px</strong>
+            <span>Elevation</span>
+            <strong>
+              {elevationModel.heightmap.minElevationMeters.toFixed(1)}–
+              {elevationModel.heightmap.maxElevationMeters.toFixed(1)} m
+            </strong>
+          </div>
+        ) : null}
         {elevationModel ? (
           <button
             className="secondary-action compact-action"
@@ -377,6 +396,14 @@ export function ProjectStatusRail({
             type="button"
           >
             Generate Google Elevation Profile
+          </button>
+          <button
+            className="primary-action compact-action"
+            disabled={!currentProject?.status.boundaryConfirmed}
+            onClick={onGenerateCopernicusElevationProfile}
+            type="button"
+          >
+            Generate Copernicus GLO-30 Heightmap
           </button>
         </div>
         {!googleElevationStatus?.enabled ? (

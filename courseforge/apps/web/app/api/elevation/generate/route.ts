@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import type { CourseProject, DraftHolePlan } from "../../../../../../packages/course-schema/src";
 import { generateMockElevationProfile } from "../../../../lib/elevation/elevation-service";
 import { generateGoogleElevationModel } from "../../../../lib/elevation/google-elevation-provider";
+import { generateCopernicusElevationModel } from "../../../../lib/elevation/copernicus-glo30-elevation-provider";
 
 type ElevationGenerateRequest = {
   project?: CourseProject;
   draftHolePlan?: DraftHolePlan | null;
-  source?: "mock" | "google_elevation";
+  source?: "mock" | "google_elevation" | "copernicus_glo30";
 };
 
 export async function POST(request: Request) {
@@ -36,6 +37,28 @@ export async function POST(request: Request) {
       return NextResponse.json(elevationModel);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Google Elevation profile could not be generated.";
+
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
+  }
+
+  if (body.source === "copernicus_glo30") {
+    if (!body.project.boundary) {
+      return NextResponse.json(
+        { error: "Confirm a course boundary before generating a Copernicus heightmap." },
+        { status: 400 }
+      );
+    }
+    try {
+      // Live Copernicus GLO-30 fetch (open data, keyless). Raw heightmap bytes
+      // are returned to the caller but only the descriptor is sent to the client
+      // here; byte packaging is a later milestone.
+      const { model } = await generateCopernicusElevationModel(body.project.boundary);
+
+      return NextResponse.json(model);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Copernicus GLO-30 heightmap could not be generated.";
 
       return NextResponse.json({ error: message }, { status: 503 });
     }

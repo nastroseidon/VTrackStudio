@@ -566,10 +566,14 @@ export default function Home() {
     );
   };
 
-  const handleGenerateElevationProfile = async (source: "mock" | "google_elevation") => {
+  const handleGenerateElevationProfile = async (source: "mock" | "google_elevation" | "copernicus_glo30") => {
     if (!currentProject) {
       setDraftMessage("Confirm a course before generating elevation.");
       return;
+    }
+
+    if (source === "copernicus_glo30") {
+      setDraftMessage("Fetching Copernicus GLO-30 terrain… this can take a moment.");
     }
 
     try {
@@ -603,7 +607,9 @@ export default function Home() {
       setDraftMessage(
         source === "google_elevation"
           ? "Google Elevation samples generated. No terrain heightmap is generated yet."
-          : "Mock elevation profile generated. This is sample data only, not real terrain/topology."
+          : source === "copernicus_glo30"
+            ? "Copernicus GLO-30 heightmap generated from open DEM data (© Copernicus/ESA)."
+            : "Mock elevation profile generated. This is sample data only, not real terrain/topology."
       );
     } catch {
       setDraftMessage("Elevation profile could not be generated right now.");
@@ -616,6 +622,10 @@ export default function Home() {
 
   const handleGenerateGoogleElevationProfile = () => {
     void handleGenerateElevationProfile("google_elevation");
+  };
+
+  const handleGenerateCopernicusElevationProfile = () => {
+    void handleGenerateElevationProfile("copernicus_glo30");
   };
 
   const handleToggleGeneratedGeometry = () => {
@@ -1590,6 +1600,7 @@ export default function Home() {
         onExportCoursePackage={handleExportCoursePackage}
         onGenerateMockElevationProfile={handleGenerateMockElevationProfile}
         onGenerateGoogleElevationProfile={handleGenerateGoogleElevationProfile}
+        onGenerateCopernicusElevationProfile={handleGenerateCopernicusElevationProfile}
         onGenerateBasicGeometry={handleGenerateBasicGeometry}
         onToggleElevationSamples={handleToggleElevationSamples}
         onImportProject={handleImportProject}
