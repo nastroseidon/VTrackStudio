@@ -4,6 +4,7 @@ export type {
   CoursePackage,
   CoursePackageWarning,
   CourseElevationModel,
+  CourseHeightmapRaster,
   CourseProjectGeometryStatus,
   CourseProjectScorecard,
   CourseProjectScorecardHole,
