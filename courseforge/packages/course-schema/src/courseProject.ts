@@ -53,14 +53,49 @@ export type HoleElevationProfile = {
   samplePoints: ElevationPoint[];
 };
 
+// Engine-neutral descriptor for a 16-bit heightmap raster derived from an open
+// DEM (Phase 2 of the Automat port; see courseforge/docs/PHASE2_DEM_HEIGHTMAP_DESIGN.md).
+// The raster bytes are a separate packaged artifact, referenced here by path +
+// hash, never inlined. The 16-bit sample range maps linearly onto
+// [minElevationMeters, maxElevationMeters], giving the importer a vertical scale.
+export type CourseHeightmapRaster = {
+  format: "png-16" | "raw-u16";
+  width: number;
+  height: number;
+  metersPerPixel: number;
+  minElevationMeters: number;
+  maxElevationMeters: number;
+  nodataPolicy: "clampToMin" | "fillNearest";
+  crs: "EPSG:4326";
+  bounds: { south: number; west: number; north: number; east: number };
+  // Optional local metric grid (equirectangular ENU centred on the bbox) so the
+  // importer can place the Landscape in metres without reprojecting at import.
+  localGrid?: {
+    originLat: number;
+    originLng: number;
+    widthMeters: number;
+    heightMeters: number;
+    metersPerPixelX: number;
+    metersPerPixelY: number;
+  };
+  artifact: {
+    path: string;
+    byteLength: number;
+    sha256: string;
+  };
+  attribution: string;
+};
+
 export type CourseElevationModel = {
-  source: "mock" | "google_elevation" | "earth_engine" | "usgs" | "manual";
+  source: "mock" | "google_elevation" | "earth_engine" | "usgs" | "usgs_3dep" | "copernicus_glo30" | "manual";
   status: ElevationStatus;
   generatedAt: string;
   boundarySamplePoints: ElevationPoint[];
   holeProfiles: HoleElevationProfile[];
   minElevationMeters?: number;
   maxElevationMeters?: number;
+  // Optional raster heightmap (Phase 2). Absent for legacy point-sample models.
+  heightmap?: CourseHeightmapRaster;
   warnings: string[];
 };
 

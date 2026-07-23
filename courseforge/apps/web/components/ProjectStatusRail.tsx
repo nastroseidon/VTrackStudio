@@ -1,6 +1,6 @@
 "use client";
 
-import type { CourseProject, CourseProjectStatus } from "../../../packages/course-schema/src";
+import type { CourseElevationModel, CourseProject, CourseProjectStatus } from "../../../packages/course-schema/src";
 import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 import type { CoursePackageReadiness } from "../lib/course-package/build-course-package";
@@ -550,7 +550,7 @@ function elevationMetersToFeet(elevationMeters: number) {
 }
 
 function formatElevationSource(
-  source: "mock" | "google_elevation" | "earth_engine" | "usgs" | "manual" | undefined
+  source: CourseElevationModel["source"] | undefined
 ) {
   if (source === "google_elevation") {
     return "Google Elevation";
