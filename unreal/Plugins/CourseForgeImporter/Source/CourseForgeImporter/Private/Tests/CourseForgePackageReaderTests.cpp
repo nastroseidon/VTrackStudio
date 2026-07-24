@@ -5,6 +5,8 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
+#include <openssl/sha.h>
+
 namespace
 {
     struct FStoredZipEntry
@@ -50,6 +52,13 @@ namespace
         return Bytes;
     }
 
+    FString Sha256Hex(const TArray<uint8>& Bytes)
+    {
+        uint8 Digest[SHA256_DIGEST_LENGTH];
+        check(SHA256(Bytes.GetData(), Bytes.Num(), Digest));
+        return BytesToHex(Digest, UE_ARRAY_COUNT(Digest)).ToLower();
+    }
+
     void AppendStoredEntry(TArray<uint8>& Out, FStoredZipEntry& Entry)
     {
         Entry.LocalHeaderOffset = Out.Num();
@@ -90,49 +99,8 @@ namespace
         Out.Append(Entry.Name);
     }
 
-    bool WriteStoredBundleFixture(const FString& BundlePath)
+    bool WriteStoredBundleFixture(const FString& BundlePath, bool bUseCorrectHashes = true, const FString& SourceReportJson = TEXT("{\"sources\":[]}"))
     {
-        const FString Manifest = TEXT(R"json({
-          "packageVersion": "0.1.0",
-          "course": { "name": "Reader Fixture" },
-          "elevation": {
-            "heightmap": {
-              "format": "png-16",
-              "width": 1,
-              "height": 1,
-              "metersPerPixel": 1,
-              "minElevationMeters": 10,
-              "maxElevationMeters": 20,
-              "localGrid": {
-                "originLat": 40,
-                "originLng": -80,
-                "widthMeters": 1,
-                "heightMeters": 1,
-                "metersPerPixelX": 1,
-                "metersPerPixelY": 1
-              },
-              "artifact": {
-                "path": "elevation/heightmap.png",
-                "byteLength": 29,
-                "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-              }
-            }
-          },
-          "surfaces": {
-            "format": "png-8",
-            "width": 1,
-            "height": 1,
-            "layers": [{
-              "name": "fairway",
-              "artifact": {
-                "path": "surfaces/fairway.png",
-                "byteLength": 29,
-                "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-              }
-            }]
-          }
-        })json");
-
         const uint8 PngHeader[] = {
             137, 80, 78, 71, 13, 10, 26, 10,
             0, 0, 0, 13, 'I', 'H', 'D', 'R',
@@ -141,11 +109,33 @@ namespace
         };
 
         TArray<FStoredZipEntry> Entries;
-        Entries.Add({ Utf8Bytes(TEXT("course-package.json")), Utf8Bytes(Manifest) });
-        Entries.Add({ Utf8Bytes(TEXT("elevation/heightmap.png")), TArray<uint8>(PngHeader, UE_ARRAY_COUNT(PngHeader)) });
+        TArray<uint8> HeightmapPng(PngHeader, UE_ARRAY_COUNT(PngHeader));
         TArray<uint8> SurfacePng(PngHeader, UE_ARRAY_COUNT(PngHeader));
         SurfacePng[24] = 8;
+
+        const FString HeightmapHash = bUseCorrectHashes ? Sha256Hex(HeightmapPng) : FString::ChrN(64, TEXT('0'));
+        const FString SurfaceHash = Sha256Hex(SurfacePng);
+        const FString Manifest = FString::Printf(TEXT(R"json({
+          "packageVersion": "0.1.0",
+          "course": { "name": "Reader Fixture" },
+          "elevation": { "heightmap": {
+            "format": "png-16", "width": 1, "height": 1, "metersPerPixel": 1,
+            "minElevationMeters": 10, "maxElevationMeters": 20,
+            "localGrid": { "originLat": 40, "originLng": -80, "widthMeters": 1, "heightMeters": 1, "metersPerPixelX": 1, "metersPerPixelY": 1 },
+            "artifact": { "path": "elevation/heightmap.png", "byteLength": 29, "sha256": "%s" }
+          } },
+          "surfaces": { "format": "png-8", "width": 1, "height": 1, "layers": [{
+            "name": "fairway", "artifact": { "path": "surfaces/fairway.png", "byteLength": 29, "sha256": "%s" }
+          }] }
+        })json"), *HeightmapHash, *SurfaceHash);
+
+        Entries.Add({ Utf8Bytes(TEXT("course-package.json")), Utf8Bytes(Manifest) });
+        Entries.Add({ Utf8Bytes(TEXT("elevation/heightmap.png")), MoveTemp(HeightmapPng) });
         Entries.Add({ Utf8Bytes(TEXT("surfaces/fairway.png")), MoveTemp(SurfacePng) });
+        if (!SourceReportJson.IsEmpty())
+        {
+            Entries.Add({ Utf8Bytes(TEXT("metadata/source-report.json")), Utf8Bytes(SourceReportJson) });
+        }
 
         for (FStoredZipEntry& Entry : Entries)
         {
@@ -206,6 +196,44 @@ bool FCourseForgePackageReaderTest::RunTest(const FString& Parameters)
     {
         TestEqual(TEXT("Reads the surface-layer name"), Package.SurfaceLayers[0].Name, FString(TEXT("fairway")));
     }
+
+    IFileManager::Get().Delete(*BundlePath, false, true, true);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FCourseForgePackageReaderRejectsHashMismatchTest,
+    "CourseForgeImporter.PackageReader.RejectsHashMismatch",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCourseForgePackageReaderRejectsHashMismatchTest::RunTest(const FString& Parameters)
+{
+    const FString BundlePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CourseForgePackageReaderHashMismatch.zip"));
+    TestTrue(TEXT("Writes a mismatched-hash fixture"), WriteStoredBundleFixture(BundlePath, false));
+
+    FCourseForgePackage Package;
+    FString Error;
+    TestFalse(TEXT("Rejects an artifact with a mismatched SHA-256"), FCourseForgePackageReader::ReadBundle(BundlePath, Package, Error));
+    TestTrue(TEXT("Reports the hash mismatch"), Error.Contains(TEXT("SHA-256")));
+
+    IFileManager::Get().Delete(*BundlePath, false, true, true);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FCourseForgePackageReaderRejectsInvalidSourceReportTest,
+    "CourseForgeImporter.PackageReader.RejectsInvalidSourceReport",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCourseForgePackageReaderRejectsInvalidSourceReportTest::RunTest(const FString& Parameters)
+{
+    const FString BundlePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CourseForgePackageReaderInvalidSourceReport.zip"));
+    TestTrue(TEXT("Writes an invalid-source-report fixture"), WriteStoredBundleFixture(BundlePath, true, TEXT("[]")));
+
+    FCourseForgePackage Package;
+    FString Error;
+    TestFalse(TEXT("Rejects a source report that is not an object"), FCourseForgePackageReader::ReadBundle(BundlePath, Package, Error));
+    TestTrue(TEXT("Reports the invalid source report"), Error.Contains(TEXT("metadata/source-report.json")));
 
     IFileManager::Get().Delete(*BundlePath, false, true, true);
     return true;

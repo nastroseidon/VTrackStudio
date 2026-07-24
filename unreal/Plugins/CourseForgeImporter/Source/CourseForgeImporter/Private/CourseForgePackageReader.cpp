@@ -8,6 +8,8 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 
+#include <openssl/sha.h>
+
 namespace
 {
     constexpr uint8 PngSignature[] = { 137, 80, 78, 71, 13, 10, 26, 10 };
@@ -94,6 +96,24 @@ namespace
         return ReadRequiredString(*ArtifactObject, TEXT("sha256"), OutArtifact.Sha256, OutError);
     }
 
+    bool IsSha256Hex(const FString& Value)
+    {
+        if (Value.Len() != 64)
+        {
+            return false;
+        }
+
+        for (const TCHAR Character : Value)
+        {
+            if (!FChar::IsHexDigit(Character) || FChar::IsUpper(Character))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     bool ReadArtifactBytes(FZipArchiveReader& Archive, const FCourseForgeArtifact& Artifact, TArray<uint8>& OutBytes, FString& OutError)
     {
         FOutputDeviceNull ErrorSink;
@@ -105,6 +125,22 @@ namespace
         if (OutBytes.Num() != Artifact.ByteLength)
         {
             return Fail(OutError, FString::Printf(TEXT("Artifact '%s' has %d bytes; manifest declares %lld."), *Artifact.Path, OutBytes.Num(), Artifact.ByteLength));
+        }
+
+        if (!IsSha256Hex(Artifact.Sha256))
+        {
+            return Fail(OutError, FString::Printf(TEXT("Artifact '%s' has an invalid SHA-256 descriptor."), *Artifact.Path));
+        }
+
+        uint8 Digest[SHA256_DIGEST_LENGTH];
+        if (!SHA256(OutBytes.GetData(), OutBytes.Num(), Digest))
+        {
+            return Fail(OutError, FString::Printf(TEXT("Could not calculate SHA-256 for artifact '%s'."), *Artifact.Path));
+        }
+
+        if (BytesToHex(Digest, UE_ARRAY_COUNT(Digest)).ToLower() != Artifact.Sha256)
+        {
+            return Fail(OutError, FString::Printf(TEXT("Artifact '%s' SHA-256 does not match its manifest descriptor."), *Artifact.Path));
         }
 
         return true;
@@ -141,17 +177,36 @@ namespace
         return true;
     }
 
-    bool ParseManifest(const TArray<uint8>& ManifestBytes, TSharedPtr<FJsonObject>& OutRoot, FString& OutError)
+    bool ParseJsonObject(const TArray<uint8>& JsonBytes, const FString& ArtifactPath, TSharedPtr<FJsonObject>& OutRoot, FString& OutError)
     {
-        const FUTF8ToTCHAR Text(reinterpret_cast<const ANSICHAR*>(ManifestBytes.GetData()), ManifestBytes.Num());
-        const FString ManifestText(Text.Length(), Text.Get());
-        const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ManifestText);
+        const FUTF8ToTCHAR Text(reinterpret_cast<const ANSICHAR*>(JsonBytes.GetData()), JsonBytes.Num());
+        const FString JsonText(Text.Length(), Text.Get());
+        const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonText);
         if (!FJsonSerializer::Deserialize(Reader, OutRoot) || !OutRoot.IsValid())
         {
-            return Fail(OutError, TEXT("course-package.json is not valid JSON."));
+            return Fail(OutError, FString::Printf(TEXT("%s is not a valid JSON object."), *ArtifactPath));
         }
 
         return true;
+    }
+
+    bool ValidateOptionalSourceReport(FZipArchiveReader& Archive, FString& OutError)
+    {
+        static const FString SourceReportPath(TEXT("metadata/source-report.json"));
+        if (!Archive.GetFileNames().Contains(SourceReportPath))
+        {
+            return true;
+        }
+
+        TArray<uint8> SourceReportBytes;
+        FOutputDeviceNull ErrorSink;
+        TSharedPtr<FJsonObject> SourceReport;
+        if (!Archive.TryReadFile(SourceReportPath, SourceReportBytes, &ErrorSink, nullptr))
+        {
+            return Fail(OutError, TEXT("metadata/source-report.json is not readable."));
+        }
+
+        return ParseJsonObject(SourceReportBytes, SourceReportPath, SourceReport, OutError);
     }
 
     bool ReadLocalGrid(const TSharedPtr<FJsonObject>& HeightmapObject, TOptional<FCourseForgeLocalGrid>& OutGrid, FString& OutError)
@@ -214,7 +269,7 @@ bool FCourseForgePackageReader::ReadBundle(const FString& BundlePath, FCourseFor
     }
 
     TSharedPtr<FJsonObject> Root;
-    if (!ParseManifest(ManifestBytes, Root, OutError)
+    if (!ParseJsonObject(ManifestBytes, TEXT("course-package.json"), Root, OutError)
         || !ReadRequiredString(Root, TEXT("packageVersion"), OutPackage.PackageVersion, OutError))
     {
         return false;
@@ -223,6 +278,11 @@ bool FCourseForgePackageReader::ReadBundle(const FString& BundlePath, FCourseFor
     if (OutPackage.PackageVersion != TEXT("0.1.0"))
     {
         return Fail(OutError, FString::Printf(TEXT("Unsupported CoursePackage version '%s'."), *OutPackage.PackageVersion));
+    }
+
+    if (!ValidateOptionalSourceReport(Archive, OutError))
+    {
+        return false;
     }
 
     const TSharedPtr<FJsonObject>* CourseObject = nullptr;

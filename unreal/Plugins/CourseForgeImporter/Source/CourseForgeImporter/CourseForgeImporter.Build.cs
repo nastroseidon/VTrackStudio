@@ -19,5 +19,7 @@ public class CourseForgeImporter : ModuleRules
             "Json",
             "JsonUtilities"
         });
+
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
     }
 }
