@@ -24,7 +24,7 @@
 
 **5. PR #25 carries four commits that have nothing to do with its stated purpose.** Its title is "correct the M3.5→M3.6 handoff", but the branch also publishes `CODEX_BRIEF.md`, `HANDOFF.md`, `TASK_LEDGER.md`, `REFOCUS.md`, a `README.md` change and `handoffs/` — commits `d9ce4ed`, `7c54efc`, `1c78575`, `26c4b55`, made directly to a local `main` in violation of `AGENTS.md`. Merging #25 publishes all of it. The PR body already offers to rebase; see §3.
 
-**6. `HANDOFF.md` is factually wrong and does not exist on `main`.** It exists only on #25's branch. Its errors are listed in §4 — they must be fixed *on #25* before it merges, or immediately after. They could not be fixed in this PR without either duplicating the file onto `main` (guaranteeing a conflict with #25) or stacking this branch on #25.
+**6. `HANDOFF.md` was factually wrong and does not exist on `main`.** It exists only on #25's branch. Rather than duplicate it onto `main` and guarantee a conflict with #25, **this branch is stacked on #25** and the corrections are applied there directly — see §4 for what changed and why. This PR therefore targets `docs/m3.6-handoff-correction`, not `main`, and should be merged after #25.
 
 ---
 
@@ -34,7 +34,7 @@
 |---|---|---|---|
 | 1 | **#16** | `chore/ci-verify` | Draft. Land first so everything after it is actually validated. Touches only `.github/` — cannot break the app. Needs un-drafting and one green run. |
 | 2 | **#22** | `feature/m3.3-followup` | Makes `ROADMAP.md` true. Nearly free, and every later PR is read against a correct roadmap. |
-| 3 | **#25** | `docs/m3.6-handoff-correction` | Publishes the coordination files and the corrected handoff. Land only after the §3 decision and the §4 `HANDOFF.md` fixes. |
+| 3 | **#25** | `docs/m3.6-handoff-correction` | Publishes the coordination files and the corrected handoff. Land only after the §3 decision. **This PR stacks on it** and should land immediately after. |
 | 4 | **#23** | `feature/surfaces-api-ui` | M3.5. The only functional change in the queue. **Recommended: hold until test coverage exists** — see §5. |
 | 5 | **#17** | `feature/unreal-importer-design` | Draft. Design doc for the Unreal importer; logically precedes the implementation in #24. |
 | 6 | **#24** | `feature/unreal-importer-reader` | Draft. The importer implementation. Reads `CoursePackage` — merge after #23 so it is validated against the final Phase 3 package shape. |
@@ -62,11 +62,11 @@ Three options, in order of preference:
 
 ---
 
-## 4. `HANDOFF.md` corrections needed on #25
+## 4. `HANDOFF.md` corrections — applied
 
-Not applied here — the file exists only on #25's branch (see §1 finding 6). Whoever lands #25 should apply these; every one was checked against `git log`.
+Applied on this branch, which is stacked on #25 (see §1 finding 6). Every correction was checked against `git log origin/main`. `TASK_LEDGER.md` was corrected in the same pass: M3.5 moved from ✅ COMPLETE to 🔄 IN_REVIEW, this task checked out and closed, the `PHASE3*.md` row corrected to say the design doc is locked rather than an M3.6 archival deliverable, and the `tests/` row flagged as contested.
 
-| Line / section | Current claim | Verified reality |
+| Line / section | Was | Corrected to |
 |---|---|---|
 | L3 | "M3.5 complete, PR #23 awaiting merge" | PR #23 is **open**. Say "M3.5 in review". |
 | L7 | "✅ M3.5 COMPLETE" | Same. An open PR is not a merged one. |
@@ -112,16 +112,18 @@ The case for merging now: it is mergeable, `verify:fast` passes, and the in-flig
 
 Listed rather than guessed at.
 
-1. **`HANDOFF.md` cannot be corrected from a branch off `main`.** The close-out brief asked for `main`-based work *and* a corrected `HANDOFF.md`; those are mutually exclusive, since the file is only on #25. Corrections specified in §4 instead of applied. **Needs:** a decision on §3 first.
+1. **`HANDOFF.md` cannot be corrected from a branch off `main`** — the close-out brief asked for `main`-based work *and* a corrected `HANDOFF.md`, which are mutually exclusive since the file is only on #25. **Resolved** by stacking this branch on #25 and targeting the PR there. The cost: the `ROADMAP.md` correction in this PR now lands only once #25 lands. If #25 is rejected or rebased per §3, this PR needs rebasing onto whatever carries `HANDOFF.md`.
 2. **The M3.6 session's existence is unverified.** `feature/m3.6-canopy` does **not exist on `origin`** — `git ls-remote --heads origin` lists 17 branches and it is not among them. Its status is therefore taken on the handoff's word, and §5's recommendation depends on it. **Needs:** confirmation from the user.
 3. **`AUTOMAT_PORT_HANDOFF.md` is unreadable from a cloud session.** It lives at `H:\Claude\`, outside the repository and outside version control, yet prior handoffs call it the authoritative record. Nothing in this document relies on it. **Needs:** it should be moved into the repo or demoted from "authoritative".
-4. **`REFOCUS.md` was not read before this submission**, as governance requires — it is on #25's branch, not `main`. Noted rather than skipped silently.
+4. ~~`REFOCUS.md` was not read before this submission.~~ **Resolved** — reachable once this branch stacked on #25, and read. Its scope questions are satisfied: this is the assigned milestone's work, no abstractions or speculative infrastructure were added, and per its question 7 the path is now checked out in `TASK_LEDGER.md`.
 5. **Test counts are from Node 22.22.2, not the Node 24.18.0 the project standardises on** — this cloud environment's toolchain. The count matched (118) so the discrepancy appears immaterial, but it is not the documented configuration.
 6. **`PHASE3_LANDCOVER_SPLAT_DESIGN.md` is signed off and locked and was not edited.** Nothing in it was found to be wrong.
 
 ---
 
 ## 8. What was verified for this document, and what was not
+
+**Base of this PR:** `docs/m3.6-handoff-correction` (#25), not `main` — see §1 finding 6.
 
 **Verified:** `origin/main` = `4caccd8` · the seven open PRs, their numbers, branches, draft state, head SHAs and file lists, from the GitHub API · every merged milestone→PR→SHA mapping, from `git log` · zero conflicts across all 7 branches and all 21 pairs, from `git merge-tree` · #23's test count (118, unchanged from `main`), from the diff · that `feature/m3.6-canopy` is absent from `origin`.
 
