@@ -1,6 +1,6 @@
 # Phase 2 — DEM Heightmaps (Design Proposal)
 
-**Status:** SIGNED OFF 2026-07-22 — proceed as drafted with the additions in §4/§9. M2.1 in progress on `feature/dem-heightmap-provider`.
+**Status:** SIGNED OFF 2026-07-22 — proceed as drafted with the additions in §4/§9. M2.0, M2.1, and M2.2 are complete (M2.2 dependency gate closed by the audit in §10). **M2.3 is next and remains blocked on live-provider approval.**
 **Date:** 2026-07-22
 **Roadmap phase:** 2 of 4 (see `AUTOMAT_PORT_HANDOFF.md` §3, root `AGENTS.md` port roadmap).
 **Approved so far:** (a) Copernicus GLO‑30 as the first DEM source; (b) authoring this note.
@@ -95,10 +95,10 @@ Same discipline as Phase 1 (pure functions + fixtures first; thin live wrapper b
 
 ## 6. Proposed milestone breakdown (each scored independently by the council)
 
-- **M2.0 (this note):** design + sign-off. ← current
-- **M2.1 (offline, needs schema-change approval):** add `CourseHeightmapRaster` + enum values to schema; pure tiling math + descriptor builder + PNG‑16 encoder, all fixture-tested. No live calls, no `geotiff` yet if PNG encode is dep-free. Gate: schema change.
-- **M2.2 (needs dep approval):** add `geotiff`; GeoTIFF decode + bilinear resample against a tiny fixture tile. Gate: new dependency.
-- **M2.3 (needs live-provider approval):** thin live S3 wrapper; live smoke against a real GLO‑30 tile for a known course; verify contract, attribution, rate/etiquette. Gate: live provider.
+- **M2.0 (this note):** design + sign-off. **DONE.**
+- **M2.1 (offline, needs schema-change approval):** add `CourseHeightmapRaster` + enum values to schema; pure tiling math + descriptor builder + PNG‑16 encoder, all fixture-tested. No live calls, no `geotiff` yet if PNG encode is dep-free. Gate: schema change. **DONE.**
+- **M2.2 (needs dep approval):** add `geotiff`; GeoTIFF decode + bilinear resample against a tiny fixture tile. Gate: new dependency — **closed by the audit in §10. DONE.**
+- **M2.3 (needs live-provider approval):** thin live S3 wrapper; live smoke against a real GLO‑30 tile for a known course; verify contract, attribution, rate/etiquette. Gate: live provider. ← **current; NOT STARTED, blocked on approval.** Tile URLs are constructed today in `lib/elevation/copernicus/glo30-tiles.ts` but nothing fetches them.
 - Wire into `elevation-service.ts` as a new provider in the chain; Google point-sampling stays as legacy fallback (not deleted).
 
 ## 7. Verification (per milestone)
@@ -115,6 +115,35 @@ Each milestone on its own `feature/*` branch, additive schema only → revert = 
 2. **Output resolution** — **native GLO‑30 by default**, with **configurable Unreal-compatible output dimensions** (encoder accepts optional target `width`/`height`; native when unset).
 3. **Dependency** — `geotiff` approved in principle, **subject to the provenance/license audit at M2.2**.
 4. **Artifact packaging** — **separate packaged heightmap artifact** (not inline base64), referenced by `artifact.path` + `sha256` + `byteLength`.
+
+## 10. `geotiff` provenance and license audit (closes the M2.2 dependency gate)
+
+Audited 2026-07-24 against the installed tree in `courseforge/apps/web`. This closes the §9.3 condition that `geotiff` was approved *subject to* a provenance and license audit.
+
+**Package:** `geotiff@3.0.5` — MIT — `github.com/geotiffjs/geotiff.js`.
+
+**Full runtime dependency closure** (8 direct, none of which have runtime sub-dependencies, so this is the complete set):
+
+| Package | Version | License |
+| --- | --- | --- |
+| `geotiff` | 3.0.5 | MIT |
+| `@petamoriken/float16` | 3.9.3 | MIT |
+| `lerc` | 3.0.0 | Apache-2.0 |
+| `pako` | 2.2.0 | MIT AND Zlib |
+| `parse-headers` | 2.0.6 | MIT |
+| `quick-lru` | 6.1.2 | MIT |
+| `web-worker` | 1.5.0 | Apache-2.0 |
+| `xml-utils` | 1.10.2 | CC0-1.0 |
+| `zstddec` | 0.2.0 | MIT AND BSD-3-Clause |
+
+**Findings:**
+
+- All licenses are permissive. No copyleft (GPL, LGPL, AGPL, MPL) anywhere in the closure, so there is no reciprocal-licensing obligation on CourseForge or on generated CoursePackage artifacts.
+- Apache-2.0 (`lerc`, `web-worker`) carries a NOTICE/attribution obligation if binaries are redistributed; note this when packaging or distributing builds.
+- The tree is flat — no transitive dependency has its own runtime dependencies — which keeps future audit and advisory surface small.
+- `npm audit --audit-level=low` reports 0 advisories across the subtree.
+
+**Verdict:** dependency gate **closed, approved**. Re-run this audit if `geotiff` is upgraded across a major version, since the closure could change.
 
 ---
 
