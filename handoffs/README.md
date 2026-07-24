@@ -41,13 +41,25 @@ When a milestone completes:
 3. Update `## Current Handoff` section above
 4. Commit to main: `git add handoffs/ && git commit -m "CheckIn: M[X] complete, M[X+1] handoff ready"`
 
-**Template** (copy from latest handoff file):
-- Current project state (completed milestones, implementation summary)
-- M[X+1] scope definition (in-scope, out-of-scope, deliverables)
-- First-steps checklist
-- Governance rules (TL;DR)
-- Data sources table
-- Agents & skills for this milestone
-- Work plan outline
-- Quick links
-- Session info (user, runtime, date)
+**Template** (copy from latest handoff file M3.5-to-M3.6.md):
+
+Structure:
+1. **SETUP**: `/remote-control on` (enable autonomous headless mode)
+2. **HANDOFF HEADER**: "M[X-1] → M[X]", who/when/status
+3. **GOVERNANCE**: Council scoring rules, file ownership, anti-patterns (all inline)
+4. **COORDINATION**: Table of all support files in repo + discovery order
+5. **CURRENT STATE**: Completed milestones, implementation summary, what's working end-to-end
+6. **M[X] SCOPE**: In-scope, out-of-scope, deliverables, decisions needed
+7. **DATA & TOOLS**: Open data sources, agents, skills available
+8. **SESSION SETUP**: User, runtime, memory path, dates, repo link
+9. **FIRST STEPS**: Numbered bash commands (check out path, verify baseline, read files, start work)
+10. **QUICK REFERENCE**: One-page table of files + purposes
+11. **READY TO PROCEED**: Final reminder + "start here" command block
+
+**Key Rules for All Future Handoffs**:
+- ✅ SELF-CONTAINED (all coordination info embedded, no "go read separate files")
+- ✅ STARTS WITH /remote-control SETUP (no manual invocation needed)
+- ✅ INCLUDES ALL GOVERNANCE RULES INLINE (council scoring, file ownership)
+- ✅ FRESH INFORMATION (what to do, exact commands, paths, decisions)
+- ✅ NUMBERED STEPS (copy-paste ready, no ambiguity)
+- ✅ COPY-PASTE ENTIRE SECTION (one paste, full context)
