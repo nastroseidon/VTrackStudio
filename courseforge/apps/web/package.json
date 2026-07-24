@@ -11,8 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "playwright test",
+    "audit": "npm audit --audit-level=moderate",
     "verify:fast": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "verify": "npm run verify:fast && npm run test:browser"
+    "verify": "npm run verify:fast && npm run audit && npm run test:browser"
   },
   "dependencies": {
     "@vis.gl/react-google-maps": "^1.5.5",
