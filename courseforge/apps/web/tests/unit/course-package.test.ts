@@ -5,6 +5,8 @@ import {
 } from "../../lib/course-package/build-course-package";
 import { generateBasicCourseGeometry } from "../../lib/geometry/generate-basic-hole-geometry";
 import { createDraftHolePlan, createProject, generatedAt } from "../helpers/course-fixtures";
+import { createTestClassGrid, createTestGeometry, testGrid } from "../helpers/surface-fixtures";
+import { generateCourseSplatMap } from "../../lib/surfaces/generate-splat";
 
 function createReadyState() {
   const plan = createDraftHolePlan();
@@ -172,5 +174,30 @@ describe("CoursePackage construction", () => {
       geometry: { stale: false }
     });
     expect(coursePackage.holes[0]).toMatchObject({ holeNumber: 1, par: 4, status: "approved" });
+  });
+});
+
+// M3.5: the splat descriptor travels with the package so an importer sees the
+// surface layers alongside the heightmap.
+describe("CoursePackage surfaces", () => {
+  it("carries the project's splat descriptor through to the package", () => {
+    const { plan, project } = createReadyState();
+    const splat = generateCourseSplatMap({
+      geometry: createTestGeometry(),
+      grid: testGrid,
+      classGrid: createTestClassGrid(),
+      landCoverSource: "esa_worldcover_v200"
+    }).splat;
+
+    const coursePackage = buildCoursePackage({ ...project, surfaces: splat }, plan, false, generatedAt);
+
+    expect(coursePackage.surfaces).toEqual(splat);
+    expect(coursePackage.surfaces?.sources).toContain("esa_worldcover_v200");
+    expect(coursePackage.surfaces?.layers.length).toBeGreaterThan(0);
+  });
+
+  it("omits surfaces when the project has none", () => {
+    const { plan, project } = createReadyState();
+    expect(buildCoursePackage(project, plan, false, generatedAt).surfaces).toBeUndefined();
   });
 });
