@@ -6,8 +6,8 @@
 // Everything here is deterministic so encoded bytes and their sha256 are stable
 // and unit-testable without a network.
 
-import { deflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
+import { encodePngGray } from "../../imaging/png";
 import type { CourseHeightmapRaster } from "../../../../../packages/course-schema/src";
 
 export type LatLngBounds = {
@@ -180,88 +180,12 @@ function to16Bit(value: number, min: number, max: number): number {
   return Math.round(clamped * 65535);
 }
 
-// --- Minimal PNG (16-bit grayscale) encoder --------------------------------
-
-const CRC_TABLE = (() => {
-  const table = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) {
-      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    }
-    table[n] = c >>> 0;
-  }
-  return table;
-})();
-
-function crc32(bytes: Uint8Array): number {
-  let crc = 0xffffffff;
-  for (let i = 0; i < bytes.length; i++) {
-    crc = CRC_TABLE[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-}
-
-function chunk(type: string, data: Uint8Array): Uint8Array {
-  const typeBytes = new Uint8Array(4);
-  for (let i = 0; i < 4; i++) typeBytes[i] = type.charCodeAt(i);
-  const body = new Uint8Array(typeBytes.length + data.length);
-  body.set(typeBytes, 0);
-  body.set(data, typeBytes.length);
-
-  const out = new Uint8Array(4 + body.length + 4);
-  const view = new DataView(out.buffer);
-  view.setUint32(0, data.length);
-  out.set(body, 4);
-  view.setUint32(4 + body.length, crc32(body));
-  return out;
-}
-
-/** Encode a 16-bit grayscale PNG from row-major big-endian-ready samples. */
+/**
+ * Encode a 16-bit grayscale PNG from row-major samples.
+ * Thin wrapper over the shared encoder in lib/imaging/png.ts.
+ */
 export function encodePng16Gray(width: number, height: number, samples: Uint16Array): Uint8Array {
-  if (samples.length !== width * height) {
-    throw new Error("encodePng16Gray: sample count does not match dimensions");
-  }
-
-  const signature = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-
-  const ihdr = new Uint8Array(13);
-  const ihdrView = new DataView(ihdr.buffer);
-  ihdrView.setUint32(0, width);
-  ihdrView.setUint32(4, height);
-  ihdr[8] = 16; // bit depth
-  ihdr[9] = 0; // colour type: grayscale
-  ihdr[10] = 0; // compression
-  ihdr[11] = 0; // filter
-  ihdr[12] = 0; // interlace
-
-  // Filtered scanlines: 1 filter byte (0 = none) + width * 2 bytes, big-endian.
-  const raw = new Uint8Array(height * (1 + width * 2));
-  let p = 0;
-  for (let y = 0; y < height; y++) {
-    raw[p++] = 0;
-    for (let x = 0; x < width; x++) {
-      const s = samples[y * width + x];
-      raw[p++] = (s >>> 8) & 0xff;
-      raw[p++] = s & 0xff;
-    }
-  }
-  const idat = deflateSync(raw, { level: 9 });
-
-  const parts = [
-    signature,
-    chunk("IHDR", ihdr),
-    chunk("IDAT", new Uint8Array(idat.buffer, idat.byteOffset, idat.byteLength)),
-    chunk("IEND", new Uint8Array(0))
-  ];
-  const total = parts.reduce((n, part) => n + part.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
+  return encodePngGray(width, height, samples, 16);
 }
 
 function sha256Hex(bytes: Uint8Array): string {

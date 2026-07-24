@@ -86,6 +86,43 @@ export type CourseHeightmapRaster = {
   attribution: string;
 };
 
+// Surface classification ("splat") weightmaps — Phase 3. Each layer is an 8-bit
+// grayscale PNG on the same grid as the heightmap, so an engine can bind them
+// directly as Landscape material layers. Masks are hard (a pixel belongs to one
+// layer); feathering is a rendering concern, not baked into the package.
+// See courseforge/docs/PHASE3_LANDCOVER_SPLAT_DESIGN.md.
+export type CourseSurfaceLayerName =
+  | "fairway"
+  | "green"
+  | "tee"
+  | "bunker"
+  | "rough"
+  | "trees"
+  | "water"
+  | "bare";
+
+export type CourseSurfaceLayer = {
+  name: CourseSurfaceLayerName;
+  artifact: {
+    path: string;
+    byteLength: number;
+    sha256: string;
+  };
+};
+
+export type CourseSplatMap = {
+  format: "png-8";
+  width: number;
+  height: number;
+  crs: "EPSG:4326";
+  bounds: { south: number; west: number; north: number; east: number };
+  localGrid?: CourseHeightmapRaster["localGrid"];
+  layers: CourseSurfaceLayer[];
+  /** Provenance, e.g. ["osm", "esa_worldcover_v200"] — version is explicit. */
+  sources: string[];
+  attribution: string;
+};
+
 export type CourseElevationModel = {
   source: "mock" | "google_elevation" | "earth_engine" | "usgs" | "usgs_3dep" | "copernicus_glo30" | "manual";
   status: ElevationStatus;
@@ -139,6 +176,8 @@ export type CoursePackage = {
     holes: GeneratedHoleGeometry[];
   };
   elevation?: CourseElevationModel;
+  /** Surface classification weightmaps (Phase 3). Absent for packages without splat data. */
+  surfaces?: CourseSplatMap;
   metadata: {
     geometryStatus?: CourseProjectGeometryStatus;
     locationSource?: CourseProject["locationSource"];
