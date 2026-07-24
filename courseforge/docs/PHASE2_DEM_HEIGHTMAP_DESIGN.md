@@ -1,6 +1,8 @@
 # Phase 2 — DEM Heightmaps (Design Proposal)
 
-**Status:** SIGNED OFF 2026-07-22 — proceed as drafted with the additions in §4/§9. M2.0, M2.1, and M2.2 are complete (M2.2 dependency gate closed by the audit in §10). **M2.3 is next and remains blocked on live-provider approval.**
+**Status:** SIGNED OFF 2026-07-22 — proceeded as drafted with the additions in §4/§9. **Phase 2 is COMPLETE through M2.6 and merged.** M2.1–M2.5b landed in #7 (including the live keyless GLO-30 provider); M2.6 multi-tile mosaicking landed in #9. The M2.2 dependency gate is closed by the audit in §10. Phase 3 is now the active phase — see `PHASE3_LANDCOVER_SPLAT_DESIGN.md`.
+
+Note: the milestone list in §6 below was the original design-time plan and only ran to M2.3. Delivery continued past it (M2.4, M2.5/M2.5b, M2.6) without the list being extended; the commit bodies on #7 and #9 are the authoritative record of what shipped.
 **Date:** 2026-07-22
 **Roadmap phase:** 2 of 4 (see `AUTOMAT_PORT_HANDOFF.md` §3, root `AGENTS.md` port roadmap).
 **Approved so far:** (a) Copernicus GLO‑30 as the first DEM source; (b) authoring this note.
@@ -98,7 +100,9 @@ Same discipline as Phase 1 (pure functions + fixtures first; thin live wrapper b
 - **M2.0 (this note):** design + sign-off. **DONE.**
 - **M2.1 (offline, needs schema-change approval):** add `CourseHeightmapRaster` + enum values to schema; pure tiling math + descriptor builder + PNG‑16 encoder, all fixture-tested. No live calls, no `geotiff` yet if PNG encode is dep-free. Gate: schema change. **DONE.**
 - **M2.2 (needs dep approval):** add `geotiff`; GeoTIFF decode + bilinear resample against a tiny fixture tile. Gate: new dependency — **closed by the audit in §10. DONE.**
-- **M2.3 (needs live-provider approval):** thin live S3 wrapper; live smoke against a real GLO‑30 tile for a known course; verify contract, attribution, rate/etiquette. Gate: live provider. ← **current; NOT STARTED, blocked on approval.** Tile URLs are constructed today in `lib/elevation/copernicus/glo30-tiles.ts` but nothing fetches them.
+- **M2.3 (needs live-provider approval):** thin live S3 wrapper; live smoke against a real GLO‑30 tile for a known course; verify contract, attribution, rate/etiquette. Gate: live provider — **granted and shipped in #7. DONE.** The live path is `lib/elevation/copernicus/fetch-glo30.ts` (`fetchGlo30Tile`), called from `generate-glo30-heightmap.ts`, with `fetchImpl` injection so tests stay offline.
+- **M2.4 / M2.5 / M2.5b** — not enumerated at design time; delivered in #7 alongside M2.1–M2.3 (geotiff decode, API + UI wiring, deterministic ZIP course-bundle export). **DONE.**
+- **M2.6** — multi-tile mosaicking for courses straddling an integer lat/lng line, plus a tile-seam fix where `sampleGridNearest` returned NaN on a sub-grid's exact east/south edge. Landed in #9. **DONE.**
 - Wire into `elevation-service.ts` as a new provider in the chain; Google point-sampling stays as legacy fallback (not deleted).
 
 ## 7. Verification (per milestone)
