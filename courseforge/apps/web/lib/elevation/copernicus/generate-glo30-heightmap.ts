@@ -3,9 +3,15 @@
 // The only network step is fetchGlo30Tile (fetchImpl-injectable for tests).
 
 import { decodeGeotiffWindowToGrid } from "../heightmap/decode-geotiff";
-import { encodeHeightmap, type EncodedHeightmap, type LatLngBounds } from "../heightmap/encode-heightmap";
+import {
+  encodeHeightmap,
+  type ElevationGrid,
+  type EncodedHeightmap,
+  type LatLngBounds
+} from "../heightmap/encode-heightmap";
 import { fetchGlo30Tile, type FetchGlo30Options } from "./fetch-glo30";
-import { COPERNICUS_GLO30_ATTRIBUTION, glo30TileUrl, tileForBounds } from "./glo30-tiles";
+import { COPERNICUS_GLO30_ATTRIBUTION, glo30TileUrl, tileExtent, tilesForBounds } from "./glo30-tiles";
+import { intersectBounds, mosaicDimsFromSubGrids, mosaicSubGrids } from "./mosaic-glo30";
 
 export type GenerateGlo30Options = FetchGlo30Options & {
   /** Override the S3 endpoint (tests / mirrors). */
@@ -25,10 +31,30 @@ export async function generateGlo30Heightmap(
   bounds: LatLngBounds,
   options: GenerateGlo30Options = {}
 ): Promise<EncodedHeightmap> {
-  const tile = tileForBounds(bounds);
-  const url = glo30TileUrl(tile.name, options.endpoint);
-  const bytes = await fetchGlo30Tile(url, { fetchImpl: options.fetchImpl, signal: options.signal });
-  const grid = await decodeGeotiffWindowToGrid(bytes, bounds);
+  const tiles = tilesForBounds(bounds);
+  const fetchOpts = { fetchImpl: options.fetchImpl, signal: options.signal };
+
+  let grid: ElevationGrid;
+  if (tiles.length === 1) {
+    // Single-tile fast path: window-decode straight to the course bounds.
+    const bytes = await fetchGlo30Tile(glo30TileUrl(tiles[0].name, options.endpoint), fetchOpts);
+    grid = await decodeGeotiffWindowToGrid(bytes, bounds);
+  } else {
+    // Multi-tile: window-decode each tile's intersection with the course bbox,
+    // then stitch the sub-grids into one grid aligned to the full bounds.
+    const subGrids: ElevationGrid[] = [];
+    for (const tile of tiles) {
+      const clip = intersectBounds(bounds, tileExtent(tile));
+      if (!clip) continue;
+      const bytes = await fetchGlo30Tile(glo30TileUrl(tile.name, options.endpoint), fetchOpts);
+      subGrids.push(await decodeGeotiffWindowToGrid(bytes, clip));
+    }
+    if (subGrids.length === 0) {
+      throw new Error("generateGlo30Heightmap: no tiles overlapped the course bounds");
+    }
+    const dims = mosaicDimsFromSubGrids(subGrids, bounds);
+    grid = mosaicSubGrids(subGrids, bounds, dims.cols, dims.rows);
+  }
 
   return encodeHeightmap(grid, {
     source: "copernicus_glo30",
