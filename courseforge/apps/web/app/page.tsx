@@ -26,6 +26,7 @@ import {
 import type {
   CourseBoundary,
   CourseElevationModel,
+  CourseSplatMap,
   DraftHole,
   CourseProject,
   CourseProjectStatus,
@@ -251,6 +252,8 @@ export default function Home() {
   // Cached Copernicus heightmap PNG (base64) from the last generation, for an
   // instant bundle export without re-fetching. Not persisted (memory only).
   const copernicusHeightmapB64Ref = useRef<string | null>(null);
+  // Cached surface layer PNGs (base64 by layer name), same lifecycle.
+  const surfaceLayersB64Ref = useRef<Record<string, string> | null>(null);
   const [holeTraceReviewMode, setHoleTraceReviewMode] = useState(false);
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -463,7 +466,8 @@ export default function Home() {
           draftHolePlan,
           generatedGeometryStale,
           exportedAt,
-          heightmapPngBase64: copernicusHeightmapB64Ref.current ?? undefined
+          heightmapPngBase64: copernicusHeightmapB64Ref.current ?? undefined,
+          surfaceLayersBase64: surfaceLayersB64Ref.current ?? undefined
         })
       });
 
@@ -686,6 +690,56 @@ export default function Home() {
 
   const handleGenerateCopernicusElevationProfile = () => {
     void handleGenerateElevationProfile("copernicus_glo30");
+  };
+
+  const handleGenerateSurfaceLayers = async () => {
+    if (!currentProject) {
+      setDraftMessage("Confirm a course before generating surface layers.");
+      return;
+    }
+    const heightmap = currentProject.elevationModel?.heightmap;
+    if (!heightmap) {
+      setDraftMessage("Generate a Copernicus heightmap first — surface layers share its grid.");
+      return;
+    }
+    if (!currentProject.providerCourseId) {
+      setDraftMessage("Surface layers need an imported provider course (course geometry).");
+      return;
+    }
+
+    setDraftMessage("Generating surface layers from OSM + ESA WorldCover…");
+    try {
+      const response = await fetch("/api/surfaces/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: currentProject.providerCourseId,
+          grid: {
+            width: heightmap.width,
+            height: heightmap.height,
+            bounds: heightmap.bounds,
+            localGrid: heightmap.localGrid
+          }
+        })
+      });
+      const data = (await response.json()) as Record<string, unknown>;
+      const errorMessage = typeof data.error === "string" ? data.error : undefined;
+
+      if (!response.ok || errorMessage) {
+        setDraftMessage(errorMessage ?? "Surface layers could not be generated.");
+        return;
+      }
+
+      const splat = data.splat as CourseSplatMap;
+      const layersBase64 = data.layersBase64 as Record<string, string>;
+      surfaceLayersB64Ref.current = layersBase64 ?? null;
+      setCurrentProject({ ...currentProject, surfaces: splat });
+      setDraftMessage(
+        `Surface layers generated (${splat.layers.length} layers; OSM © OpenStreetMap contributors, ESA WorldCover CC BY 4.0).`
+      );
+    } catch {
+      setDraftMessage("Surface layers could not be generated right now.");
+    }
   };
 
   const handleToggleGeneratedGeometry = () => {
@@ -1662,6 +1716,7 @@ export default function Home() {
         onGenerateMockElevationProfile={handleGenerateMockElevationProfile}
         onGenerateGoogleElevationProfile={handleGenerateGoogleElevationProfile}
         onGenerateCopernicusElevationProfile={handleGenerateCopernicusElevationProfile}
+        onGenerateSurfaceLayers={() => void handleGenerateSurfaceLayers()}
         onGenerateBasicGeometry={handleGenerateBasicGeometry}
         onToggleElevationSamples={handleToggleElevationSamples}
         onImportProject={handleImportProject}
