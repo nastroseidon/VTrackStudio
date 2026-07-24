@@ -1,7 +1,13 @@
 // Live ESA WorldCover tile fetch + decode into the compositor's ClassGrid
 // (Phase 3 M3.3). The fetch is a thin, fetchImpl-injectable wrapper (same
-// pattern as Copernicus fetch-glo30) so all tests stay offline. Tiles measured
-// at 2.5–28 MB, so download-then-window-decode is acceptable, matching GLO-30.
+// pattern as Copernicus fetch-glo30) so all tests stay offline.
+//
+// Tile sizes vary far more than GLO-30: ocean-heavy tiles compress to a few
+// MB, but dense-land tiles are large — N36W123 (California coast) is 87.6 MB
+// by HEAD. Download-then-window-decode is correct-but-heavy for those; the
+// bucket serves Accept-Ranges: bytes, so COG range reads via geotiff `fromUrl`
+// (pulling only the course window, ~100s of KB) are the natural optimisation
+// when M3.5 wires this into an interactive API route.
 
 import { decodeGeotiffWindowToGrid } from "../../elevation/heightmap/decode-geotiff";
 import type { ElevationGrid, LatLngBounds } from "../../elevation/heightmap/encode-heightmap";
