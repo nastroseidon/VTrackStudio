@@ -11,7 +11,39 @@ VTrackStudio is the parent workspace for the VTrack golf simulator ecosystem. It
 
 ## Current milestone
 
-CourseForge is implementing **Milestone 17 — Course Package Readiness Gate**, a deterministic quality gate for its current neutral preview JSON export. See the [CourseForge roadmap](courseforge/docs/ROADMAP.md) for scope and exclusions.
+**Phase 3 (ESA WorldCover Land-Cover Splats)**: ✅ M3.5 COMPLETE (surfaces API + UI wiring). Awaiting merge approval for PR #23. Next: M3.6 (finalize Phase 3 docs, publish Phase 4 roadmap).
+
+See [HANDOFF.md](HANDOFF.md) for current project state, council governance, and milestone definition.
+
+## For New Tasks or Parallel Work
+
+If you are starting a new task on this repository, **read these files in order**:
+
+1. **[CODEX_BRIEF.md](CODEX_BRIEF.md)** — Codebase structure, governance model, file ownership, workflow checklist
+2. **[HANDOFF.md](HANDOFF.md)** — Current project state, milestone definition, council scoring rules, available agents/skills, file boundaries
+3. **[TASK_LEDGER.md](TASK_LEDGER.md)** — Check-in/check-out registry. Update this file when starting your task to prevent overlap with parallel work.
+4. **[REFOCUS.md](REFOCUS.md)** — Anti-scope-creep prompt. Read before any council decision or when considering new work.
+
+### Quick Start for New Task
+
+```bash
+cd courseforge/apps/web
+# Read the coordination files above (CODEX_BRIEF → HANDOFF → TASK_LEDGER → REFOCUS)
+# Update TASK_LEDGER.md to check out your task path
+git checkout main && git pull origin main
+git checkout -b feature/m[X]-[your-task-slug]
+git add TASK_LEDGER.md && git commit -m "CheckOut: M[X]-[task] (owner, eta)"
+npm run verify:fast  # baseline check
+# Start work (see REFOCUS.md for scope guidance)
+```
+
+### Key Rules
+- **Council Scoring**: All decisions scored on 8 dimensions (correctness, safety, testability, rollback, fit, scope, maintainability, simplicity). ≥85 auto-proceeds; <85 requires council. Merge to main always manual.
+- **File Ownership**: Phase lib/ paths locked to main session. API routes + UI: coordination points (check TASK_LEDGER.md). Docs + tests: free work.
+- **Check-In/Check-Out**: Update TASK_LEDGER.md when starting (IN_PROGRESS) and finishing (COMPLETE). Prevents parallel tasks from editing the same files.
+- **Scope Focus**: Read REFOCUS.md before every decision. Avoids premature optimization, abstractions, and features outside current milestone.
+
+---
 
 ## Development setup
 
