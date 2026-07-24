@@ -44,16 +44,42 @@ export function glo30TileUrl(name: string, endpoint: string = GLO30_BUCKET_URL):
 
 /**
  * The single GLO-30 tile covering `bounds`. Throws if the bbox spans more than
- * one integer-degree tile — multi-tile mosaicking is a later milestone, and an
- * honest error beats a silently truncated course.
+ * one integer-degree tile. Prefer `tilesForBounds` for the general case; this
+ * remains for single-tile callers that want an explicit guard.
  */
 export function tileForBounds(bounds: LatLngBounds): Glo30Tile {
   const swLat = Math.floor(bounds.south);
   const swLng = Math.floor(bounds.west);
   if (Math.floor(bounds.north) !== swLat || Math.floor(bounds.east) !== swLng) {
     throw new Error(
-      "tileForBounds: course bounds span more than one GLO-30 tile; multi-tile mosaicking is not yet supported"
+      "tileForBounds: course bounds span more than one GLO-30 tile; use tilesForBounds for mosaicking"
     );
   }
   return { name: glo30TileName(bounds.south, bounds.west), swLat, swLng };
+}
+
+/** The 1° geographic extent of a tile given its integer SW corner. */
+export function tileExtent(tile: Glo30Tile): LatLngBounds {
+  return { south: tile.swLat, west: tile.swLng, north: tile.swLat + 1, east: tile.swLng + 1 };
+}
+
+/**
+ * Every GLO-30 tile whose 1° cell overlaps `bounds`, row-major from the NW
+ * corner. A course straddling an integer lat/lng line yields >1 tile.
+ */
+export function tilesForBounds(bounds: LatLngBounds): Glo30Tile[] {
+  const swLatMin = Math.floor(bounds.south);
+  const swLngMin = Math.floor(bounds.west);
+  // A bbox edge exactly on an integer belongs to the lower tile, so use the
+  // floor of a value nudged off the boundary for the max side.
+  const swLatMax = Math.floor(bounds.north === Math.floor(bounds.north) ? bounds.north - 1e-9 : bounds.north);
+  const swLngMax = Math.floor(bounds.east === Math.floor(bounds.east) ? bounds.east - 1e-9 : bounds.east);
+
+  const tiles: Glo30Tile[] = [];
+  for (let lat = swLatMax; lat >= swLatMin; lat--) {
+    for (let lng = swLngMin; lng <= swLngMax; lng++) {
+      tiles.push({ name: glo30TileName(lat, lng), swLat: lat, swLng: lng });
+    }
+  }
+  return tiles;
 }
