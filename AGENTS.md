@@ -26,8 +26,9 @@ npm run typecheck      # strict TypeScript check without build-info output
 npm run test           # deterministic Vitest unit and integration tests
 npm run test:watch     # Vitest watch mode
 npm run test:browser   # Chromium Playwright tests at supported desktop viewports
+npm run audit          # fail on moderate or higher dependency advisories
 npm run verify:fast    # routine lint, typecheck, tests, and production build
-npm run verify         # complete verification, including browser tests
+npm run verify         # complete verification, including dependency audit and browser tests
 npm run build          # production build verification
 npm run start          # serve an already-created production build
 ```
@@ -51,7 +52,8 @@ There is no root npm package; run npm scripts from `courseforge/apps/web/`. Use 
 - Do not weaken TypeScript, ESLint, or build settings to make checks pass.
 - Add or update focused unit tests for deterministic logic and integration tests for boundaries such as API routes and provider normalization when test infrastructure is available.
 - Add or update Playwright coverage for user-critical flows. The current configuration covers Chromium at 1440x900 and 1920x1080.
-- `npm run verify:fast` runs lint, strict type checking, Vitest, and the production build. `npm run verify` adds Playwright and must exit nonzero on any failure.
+- `npm run verify:fast` runs lint, strict type checking, Vitest, and the production build. `npm run verify` adds the dependency audit and Playwright and must exit nonzero on any failure.
+- `npm run audit` fails on moderate or higher advisories. It is part of `npm run verify` rather than `npm run verify:fast` because it requires registry network access and can begin failing when a new advisory is published against an unchanged dependency tree. When it fails for an advisory with no compatible upstream fix, patch the transitive dependency with an `overrides` entry in `courseforge/apps/web/package.json` and record why; do not weaken the audit level to make the check pass.
 - Browser automation should retain screenshots and traces on failure. Browser checks should fail on unexpected console errors and failed same-origin/API network requests, with explicit allowlists only for known intentional cases.
 - Tests must be deterministic, must not require production credentials, and must use mock/local providers unless live integration testing is explicitly approved.
 - If a required test layer does not exist, state that clearly in completion reporting; do not represent lint or build checks as test coverage.
