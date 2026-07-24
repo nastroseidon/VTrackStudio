@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { writeArrayBuffer } from "geotiff";
 import {
-  WORLDCOVER_ATTRIBUTION,
   WORLDCOVER_CLASSES,
   WORLDCOVER_DEFAULT_RELEASE,
-  layerForWorldCoverClass,
   worldCoverSourceId,
   worldCoverTileExtent,
   worldCoverTileKey,
@@ -12,7 +10,12 @@ import {
   worldCoverTileUrl,
   worldCoverTilesForBounds
 } from "../../lib/surfaces/worldcover/worldcover-tiles";
-import { fetchWorldCoverClassGrids, fetchWorldCoverTile } from "../../lib/surfaces/worldcover/fetch-worldcover";
+import {
+  fetchWorldCoverClassGrid,
+  fetchWorldCoverTile,
+  toClassGrid
+} from "../../lib/surfaces/worldcover/fetch-worldcover";
+import { WORLDCOVER_CLASS_TO_LAYER, WORLDCOVER_NODATA } from "../../lib/surfaces/composite-surfaces";
 
 describe("worldCoverTileName / key / url", () => {
   it("snaps to the 3-degree grid and formats the SW corner", () => {
@@ -39,6 +42,13 @@ describe("worldCoverTileName / key / url", () => {
     expect(worldCoverSourceId({ version: "v100", year: "2020" })).toBe("esa_worldcover_v100");
     expect(WORLDCOVER_DEFAULT_RELEASE.version).toBe("v200");
   });
+
+  it("legend codes are all handled by the canonical class mapping (except nodata)", () => {
+    for (const [name, code] of Object.entries(WORLDCOVER_CLASSES)) {
+      if (code === WORLDCOVER_NODATA) continue;
+      expect(WORLDCOVER_CLASS_TO_LAYER[code], `${name} (${code}) unmapped`).toBeDefined();
+    }
+  });
 });
 
 describe("worldCoverTilesForBounds", () => {
@@ -56,26 +66,17 @@ describe("worldCoverTilesForBounds", () => {
   });
 });
 
-describe("layerForWorldCoverClass", () => {
-  it("maps the confirmed legend onto the eight surface layers", () => {
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.TREE_COVER)).toBe("trees");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.GRASSLAND)).toBe("rough");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.SHRUBLAND)).toBe("rough");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.PERMANENT_WATER)).toBe("water");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.HERBACEOUS_WETLAND)).toBe("water");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.BUILT_UP)).toBe("bare");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.BARE_SPARSE)).toBe("bare");
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.MANGROVES)).toBe("trees");
-  });
-
-  it("returns null for no-data and unknown codes", () => {
-    expect(layerForWorldCoverClass(WORLDCOVER_CLASSES.NO_DATA)).toBeNull();
-    expect(layerForWorldCoverClass(42)).toBeNull();
-  });
-
-  it("attribution names ESA WorldCover and CC BY", () => {
-    expect(WORLDCOVER_ATTRIBUTION).toMatch(/ESA WorldCover/);
-    expect(WORLDCOVER_ATTRIBUTION).toMatch(/CC BY 4\.0/);
+describe("toClassGrid", () => {
+  it("converts a numeric raster and maps NaN gaps to the nodata code", () => {
+    const cg = toClassGrid({
+      cols: 2,
+      rows: 1,
+      data: Float64Array.from([10, Number.NaN]),
+      bounds: { south: 0, west: 0, north: 1, east: 2 }
+    });
+    expect(cg.width).toBe(2);
+    expect(cg.height).toBe(1);
+    expect(Array.from(cg.classes)).toEqual([10, WORLDCOVER_NODATA]);
   });
 });
 
@@ -95,8 +96,8 @@ async function makeClassTile(classCode: number, cols = 30, rows = 30): Promise<U
   return new Uint8Array(ab);
 }
 
-describe("fetchWorldCoverTile / fetchWorldCoverClassGrids", () => {
-  it("fetches and window-decodes the class grid for the course bounds", async () => {
+describe("fetchWorldCoverTile / fetchWorldCoverClassGrid", () => {
+  it("fetches, window-decodes and returns one ClassGrid for the course bounds", async () => {
     const tileBytes = await makeClassTile(WORLDCOVER_CLASSES.GRASSLAND);
     const fetchImpl = vi.fn(async (url: string) => {
       expect(url).toContain("ESA_WorldCover_10m_2021_v200_N54W003_Map.tif");
@@ -104,17 +105,13 @@ describe("fetchWorldCoverTile / fetchWorldCoverClassGrids", () => {
     }) as unknown as typeof fetch;
 
     const bounds = { south: 56.3, west: -2.85, north: 56.36, east: -2.78 };
-    const grids = await fetchWorldCoverClassGrids(bounds, { fetchImpl });
+    const cg = await fetchWorldCoverClassGrid(bounds, { fetchImpl });
 
-    expect(grids).toHaveLength(1);
-    const grid = grids[0];
-    expect(grid.cols).toBeGreaterThan(0);
-    expect(grid.rows).toBeGreaterThan(0);
-    // every decoded sample is the grassland class code
-    expect(Array.from(grid.data as Float64Array).every((v) => v === WORLDCOVER_CLASSES.GRASSLAND)).toBe(true);
-    // clipped well inside the 3-degree tile
-    expect(grid.bounds.west).toBeGreaterThanOrEqual(-3);
-    expect(grid.bounds.north).toBeLessThanOrEqual(57);
+    expect(cg.width).toBeGreaterThan(0);
+    expect(cg.height).toBeGreaterThan(0);
+    expect(Array.from(cg.classes).every((v) => v === WORLDCOVER_CLASSES.GRASSLAND)).toBe(true);
+    expect(cg.bounds.west).toBeGreaterThanOrEqual(-3);
+    expect(cg.bounds.north).toBeLessThanOrEqual(57);
   });
 
   it("propagates fetch failures with the status code", async () => {
@@ -124,10 +121,8 @@ describe("fetchWorldCoverTile / fetchWorldCoverClassGrids", () => {
 
   it("throws when no tile overlaps", async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
-    // Degenerate bounds produce an empty intersection set only if tiles miss —
-    // use a zero-area box exactly on a tile corner edge case instead.
     await expect(
-      fetchWorldCoverClassGrids({ south: 5, west: 5, north: 5, east: 5 }, { fetchImpl })
+      fetchWorldCoverClassGrid({ south: 5, west: 5, north: 5, east: 5 }, { fetchImpl })
     ).rejects.toThrow(/no tiles overlapped/i);
   });
 });

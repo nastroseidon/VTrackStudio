@@ -1,10 +1,12 @@
-// Live ESA WorldCover tile fetch + decode to a class grid. The fetch is a thin,
-// fetchImpl-injectable wrapper (same pattern as Copernicus fetch-glo30) so all
-// tests stay offline. Tiles measured at 2.5–28 MB, so download-then-window-
-// decode is acceptable, matching the GLO-30 path.
+// Live ESA WorldCover tile fetch + decode into the compositor's ClassGrid
+// (Phase 3 M3.3). The fetch is a thin, fetchImpl-injectable wrapper (same
+// pattern as Copernicus fetch-glo30) so all tests stay offline. Tiles measured
+// at 2.5–28 MB, so download-then-window-decode is acceptable, matching GLO-30.
 
 import { decodeGeotiffWindowToGrid } from "../../elevation/heightmap/decode-geotiff";
 import type { ElevationGrid, LatLngBounds } from "../../elevation/heightmap/encode-heightmap";
+import { intersectBounds, mosaicDimsFromSubGrids, mosaicSubGrids } from "../../elevation/copernicus/mosaic-glo30";
+import { WORLDCOVER_NODATA, type ClassGrid } from "../composite-surfaces";
 import {
   WORLDCOVER_DEFAULT_RELEASE,
   worldCoverTileExtent,
@@ -12,7 +14,6 @@ import {
   worldCoverTileUrl,
   type WorldCoverRelease
 } from "./worldcover-tiles";
-import { intersectBounds } from "../../elevation/copernicus/mosaic-glo30";
 
 export type FetchWorldCoverOptions = {
   fetchImpl?: typeof fetch;
@@ -34,36 +35,46 @@ export async function fetchWorldCoverTile(
   return new Uint8Array(await response.arrayBuffer());
 }
 
-/**
- * A land-cover class sub-grid clipped to (part of) the course bounds. The
- * "elevation" values in the grid are raw WorldCover class codes (0..100) —
- * ElevationGrid is reused as a generic georeferenced numeric raster.
- */
-export type WorldCoverClassGrid = ElevationGrid;
+/** Convert a decoded numeric raster into the compositor's ClassGrid shape. */
+export function toClassGrid(grid: ElevationGrid): ClassGrid {
+  const classes = new Uint8Array(grid.cols * grid.rows);
+  for (let i = 0; i < classes.length; i++) {
+    const v = grid.data[i];
+    // NaN (mosaic gap / decode nodata) becomes WorldCover's own nodata code so
+    // the compositor's fallback path handles it.
+    classes[i] = Number.isNaN(v) ? WORLDCOVER_NODATA : v;
+  }
+  return { width: grid.cols, height: grid.rows, bounds: grid.bounds, classes };
+}
 
 /**
- * Fetch and window-decode every WorldCover tile overlapping `bounds`, returning
- * one class sub-grid per tile (usually a single tile for a golf course; 3°
- * tiles make seams rare).
+ * Fetch every WorldCover tile overlapping `bounds`, window-decode each to its
+ * intersection, and return ONE ClassGrid over the course bounds — multi-tile
+ * courses (rare with 3° tiles) are stitched with the M2.6 mosaic, whose
+ * nearest-neighbour sampling is exactly right for categorical data.
  */
-export async function fetchWorldCoverClassGrids(
+export async function fetchWorldCoverClassGrid(
   bounds: LatLngBounds,
   options: FetchWorldCoverOptions = {}
-): Promise<WorldCoverClassGrid[]> {
+): Promise<ClassGrid> {
   const release = options.release ?? WORLDCOVER_DEFAULT_RELEASE;
   const tiles = worldCoverTilesForBounds(bounds);
-  const grids: WorldCoverClassGrid[] = [];
+  const subGrids: ElevationGrid[] = [];
 
   for (const tile of tiles) {
     const clip = intersectBounds(bounds, worldCoverTileExtent(tile));
     if (!clip) continue;
     const url = worldCoverTileUrl(tile.name, release, options.endpoint);
     const bytes = await fetchWorldCoverTile(url, { fetchImpl: options.fetchImpl, signal: options.signal });
-    grids.push(await decodeGeotiffWindowToGrid(bytes, clip));
+    subGrids.push(await decodeGeotiffWindowToGrid(bytes, clip));
   }
 
-  if (grids.length === 0) {
-    throw new Error("fetchWorldCoverClassGrids: no tiles overlapped the course bounds");
+  if (subGrids.length === 0) {
+    throw new Error("fetchWorldCoverClassGrid: no tiles overlapped the course bounds");
   }
-  return grids;
+  if (subGrids.length === 1) {
+    return toClassGrid(subGrids[0]);
+  }
+  const dims = mosaicDimsFromSubGrids(subGrids, bounds);
+  return toClassGrid(mosaicSubGrids(subGrids, bounds, dims.cols, dims.rows));
 }

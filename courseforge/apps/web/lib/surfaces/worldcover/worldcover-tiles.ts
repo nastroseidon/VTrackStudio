@@ -8,14 +8,9 @@
 // Licence: CC-BY 4.0 — attribution is mandatory wherever the data is surfaced
 // or exported. See courseforge/docs/PHASE3_LANDCOVER_SPLAT_DESIGN.md.
 
-import type { CourseSurfaceLayerName } from "../../../../../packages/course-schema/src";
 import type { LatLngBounds } from "../../elevation/heightmap/encode-heightmap";
 
 export const WORLDCOVER_BUCKET_URL = "https://esa-worldcover.s3.eu-central-1.amazonaws.com";
-
-export const WORLDCOVER_ATTRIBUTION =
-  "ESA WorldCover 10m v200 (2021) © ESA WorldCover project / Contains modified Copernicus " +
-  "Sentinel data (2021) processed by ESA WorldCover consortium. Licensed under CC BY 4.0.";
 
 /** Tiles step in 3-degree increments. */
 export const WORLDCOVER_TILE_DEGREES = 3;
@@ -123,29 +118,6 @@ export const WORLDCOVER_CLASSES = {
   MOSS_LICHEN: 100
 } as const;
 
-/**
- * WorldCover class -> engine-neutral surface layer.
- *
- * `null` means "no opinion" — the pixel stays unassigned. Note there is no
- * `built` layer by design: structures and paths arrive as meshes in Phase 4, so
- * built-up terrain is treated as bare ground beneath them.
- */
-export const WORLDCOVER_CLASS_TO_LAYER: Readonly<Record<number, CourseSurfaceLayerName | null>> = {
-  [WORLDCOVER_CLASSES.NO_DATA]: null,
-  [WORLDCOVER_CLASSES.TREE_COVER]: "trees",
-  [WORLDCOVER_CLASSES.SHRUBLAND]: "rough",
-  [WORLDCOVER_CLASSES.GRASSLAND]: "rough",
-  [WORLDCOVER_CLASSES.CROPLAND]: "rough",
-  [WORLDCOVER_CLASSES.BUILT_UP]: "bare",
-  [WORLDCOVER_CLASSES.BARE_SPARSE]: "bare",
-  [WORLDCOVER_CLASSES.SNOW_ICE]: "bare",
-  [WORLDCOVER_CLASSES.PERMANENT_WATER]: "water",
-  [WORLDCOVER_CLASSES.HERBACEOUS_WETLAND]: "water",
-  [WORLDCOVER_CLASSES.MANGROVES]: "trees",
-  [WORLDCOVER_CLASSES.MOSS_LICHEN]: "rough"
-};
-
-/** Map a raw class code to a surface layer, or null if unmapped/no-data. */
-export function layerForWorldCoverClass(code: number): CourseSurfaceLayerName | null {
-  return WORLDCOVER_CLASS_TO_LAYER[code] ?? null;
-}
+// Note: the class -> surface-layer mapping lives canonically in
+// composite-surfaces.ts (WORLDCOVER_CLASS_TO_LAYER); this module only owns tile
+// addressing and the raw legend codes, so there is a single mapping to maintain.
