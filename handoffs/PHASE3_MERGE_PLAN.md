@@ -2,6 +2,10 @@
 
 **Status:** proposal awaiting user approval. **Nothing here has been merged.** Merging to `main` requires explicit user approval, always.
 
+**Decisions recorded so far:** §3 — merge #25 as-is with an amended body (user, 2026-07-24). **Still open:** §5 — whether PR #23 (M3.5) merges before its missing test coverage has a committed owner.
+
+**Council score for this change:** 80.5 — below the 85 auto-proceed threshold, so it was presented rather than self-approved. Correctness 92, Safety 90, Testability 55, Rollback 75, Fit 92, Scope 80, Maintainability 65, Simplicity 65. The dissent is Testing & QA's: this change corrects the stale claims but adds no mechanism that stops them going stale again, so the same drift recurs at M3.6 unless a roadmap-consistency check lands in #16's workflow. That is outside this milestone and is flagged, not built.
+
 **Provenance.** Every claim below was established on **2026-07-24** from this repository, not inherited from a prior handoff:
 
 - `git log origin/main` at `4caccd8`
@@ -22,7 +26,7 @@
 
 **4. PR #23 (M3.5) adds zero test coverage.** 118 tests on `main`, 118 tests on `b77862e`. It adds a live-fetching API route, a bundle regeneration fallback, a UI handler, and a schema field — none covered. Every prior milestone in Phases 1–3 added tests. This is the single largest risk in the queue.
 
-**5. PR #25 carries four commits that have nothing to do with its stated purpose.** Its title is "correct the M3.5→M3.6 handoff", but the branch also publishes `CODEX_BRIEF.md`, `HANDOFF.md`, `TASK_LEDGER.md`, `REFOCUS.md`, a `README.md` change and `handoffs/` — commits `d9ce4ed`, `7c54efc`, `1c78575`, `26c4b55`, made directly to a local `main` in violation of `AGENTS.md`. Merging #25 publishes all of it. The PR body already offers to rebase; see §3.
+**5. PR #25 carries four commits that have nothing to do with its stated purpose.** Its title is "correct the M3.5→M3.6 handoff", but the branch also publishes `CODEX_BRIEF.md`, `HANDOFF.md`, `TASK_LEDGER.md`, `REFOCUS.md`, a `README.md` change and `handoffs/` — commits `d9ce4ed`, `7c54efc`, `1c78575`, `26c4b55`, made directly to a local `main` in violation of `AGENTS.md`. Merging #25 publishes all of it. **Decided 2026-07-24: merge as-is with an amended body** — see §3.
 
 **6. `HANDOFF.md` was factually wrong and does not exist on `main`.** It exists only on #25's branch. Rather than duplicate it onto `main` and guarantee a conflict with #25, **this branch is stacked on #25** and the corrections are applied there directly — see §4 for what changed and why. This PR therefore targets `docs/m3.6-handoff-correction`, not `main`, and should be merged after #25.
 
@@ -34,13 +38,13 @@
 |---|---|---|---|
 | 1 | **#16** | `chore/ci-verify` | Draft. Land first so everything after it is actually validated. Touches only `.github/` — cannot break the app. Needs un-drafting and one green run. |
 | 2 | **#22** | `feature/m3.3-followup` | Makes `ROADMAP.md` true. Nearly free, and every later PR is read against a correct roadmap. |
-| 3 | **#25** | `docs/m3.6-handoff-correction` | Publishes the coordination files and the corrected handoff. Land only after the §3 decision. **This PR stacks on it** and should land immediately after. |
+| 3 | **#25** | `docs/m3.6-handoff-correction` | Publishes the coordination files and the corrected handoff. Merge as-is per the §3 decision, with the body amended. **This PR stacks on it** and must land immediately after. |
 | 4 | **#23** | `feature/surfaces-api-ui` | M3.5. The only functional change in the queue. **Recommended: hold until test coverage exists** — see §5. |
 | 5 | **#17** | `feature/unreal-importer-design` | Draft. Design doc for the Unreal importer; logically precedes the implementation in #24. |
 | 6 | **#24** | `feature/unreal-importer-reader` | Draft. The importer implementation. Reads `CoursePackage` — merge after #23 so it is validated against the final Phase 3 package shape. |
 | 7 | **#20** | `docs/course-style-profile` | Draft. Phase 6 research note. No dependency in either direction; land whenever. |
 
-Steps 1–3 are documentation and CI only and can go in one sitting. Step 4 is the decision point. Steps 5–7 are Codex-owned drafts and are not urgent.
+Steps 1–3 are documentation and CI only and can go in one sitting — and #25 plus this PR should go in the *same* sitting, since this one carries the `ROADMAP.md` correction and stacks on that base. Step 4 is the remaining decision point. Steps 5–7 are Codex-owned drafts and are not urgent.
 
 ### Dependencies, stated precisely
 
@@ -50,15 +54,17 @@ Steps 1–3 are documentation and CI only and can go in one sitting. Step 4 is t
 
 ---
 
-## 3. Decision required: what to do with #25's four extra commits
+## 3. #25's four extra commits — decided: merge as-is
 
-`d9ce4ed`, `7c54efc`, `1c78575`, `26c4b55` were committed directly to a local `main`, against `AGENTS.md`. They are documentation only — no source changes — so the blast radius is small, but merging #25 as-is silently ratifies both the bypass and ~800 lines of coordination scaffolding under one "correct a handoff" title.
+`d9ce4ed`, `7c54efc`, `1c78575`, `26c4b55` were committed directly to a local `main`, against `AGENTS.md`. They are documentation only — no source changes — so the blast radius is small, but merging #25 as-is ratifies both the bypass and ~800 lines of coordination scaffolding under one "correct a handoff" title.
 
-Three options, in order of preference:
+**Decision (user, 2026-07-24): merge #25 as-is, with its body amended** to state plainly that it also publishes the coordination files.
 
-1. **Rebase #25 onto `origin/main` and split.** #25 becomes the single-file handoff correction it claims to be; the four coordination commits go into their own PR that can be reviewed on its merits. The PR author has already offered this in the PR body. **Recommended.**
-2. **Merge as-is, with the PR body amended** to state plainly that it also publishes the coordination files. Fast; leaves a misleading title in the history.
-3. **Drop the coordination files.** Only if the scaffolding is not wanted — but `handoffs/` is where this document lives, so at minimum that directory should survive.
+Rationale. The alternative — rebasing #25 onto `origin/main` and splitting the four commits into their own PR — buys a cleaner title and an independently reviewable scaffolding PR, and costs a rewrite of #25's head. That rewrite would invalidate this PR's base, since this branch stacks on #25 to reach `HANDOFF.md` (§1 finding 6). Recommending a rebase while depending on the pre-rebase head is incoherent; the earlier draft of this document did exactly that. Given the commits are docs-only and already reviewed in substance, the cleaner title is not worth a second round trip through a branch that three documents now depend on.
+
+What the decision does **not** excuse: committing to `main` remains a violation, and the next occurrence should not be resolved by ratifying it again. The rule is in `AGENTS.md` and `CODEX_BRIEF.md`; the isolation fix that prevents it is the shared-working-directory blocker in `handoffs/M3.5-to-M3.6.md` §1a, still open.
+
+Rejected: dropping the coordination files. `handoffs/` is where this document lives, so at minimum that directory has to survive.
 
 ---
 
@@ -112,7 +118,7 @@ The case for merging now: it is mergeable, `verify:fast` passes, and the in-flig
 
 Listed rather than guessed at.
 
-1. **`HANDOFF.md` cannot be corrected from a branch off `main`** — the close-out brief asked for `main`-based work *and* a corrected `HANDOFF.md`, which are mutually exclusive since the file is only on #25. **Resolved** by stacking this branch on #25 and targeting the PR there. The cost: the `ROADMAP.md` correction in this PR now lands only once #25 lands. If #25 is rejected or rebased per §3, this PR needs rebasing onto whatever carries `HANDOFF.md`.
+1. ~~`HANDOFF.md` cannot be corrected from a branch off `main`.~~ **Resolved.** The close-out brief asked for `main`-based work *and* a corrected `HANDOFF.md`, which are mutually exclusive since the file is only on #25. Resolved by stacking this branch on #25 and targeting the PR there, and by the §3 decision to merge #25 as-is — which keeps this PR's base stable. Residual cost: the `ROADMAP.md` correction here lands only once #25 lands, so #25 and this PR should merge in the same sitting.
 2. **The M3.6 session's existence is unverified.** `feature/m3.6-canopy` does **not exist on `origin`** — `git ls-remote --heads origin` lists 17 branches and it is not among them. Its status is therefore taken on the handoff's word, and §5's recommendation depends on it. **Needs:** confirmation from the user.
 3. **`AUTOMAT_PORT_HANDOFF.md` is unreadable from a cloud session.** It lives at `H:\Claude\`, outside the repository and outside version control, yet prior handoffs call it the authoritative record. Nothing in this document relies on it. **Needs:** it should be moved into the repo or demoted from "authoritative".
 4. ~~`REFOCUS.md` was not read before this submission.~~ **Resolved** — reachable once this branch stacked on #25, and read. Its scope questions are satisfied: this is the assigned milestone's work, no abstractions or speculative infrastructure were added, and per its question 7 the path is now checked out in `TASK_LEDGER.md`.
