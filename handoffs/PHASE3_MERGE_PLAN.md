@@ -2,7 +2,7 @@
 
 **Status:** proposal awaiting user approval. **Nothing here has been merged.** Merging to `main` requires explicit user approval, always.
 
-**Decisions recorded so far:** §3 — merge #25 as-is with an amended body (user, 2026-07-24). **Still open:** §5 — whether PR #23 (M3.5) merges before its missing test coverage has a committed owner.
+**Decisions recorded so far:** §3 — merge #25 as-is with an amended body (user, 2026-07-24). §5 — merge #23; the pipeline was run against live providers and works (evidence in §5).
 
 **Council score for this change:** 80.5 — below the 85 auto-proceed threshold, so it was presented rather than self-approved. Correctness 92, Safety 90, Testability 55, Rollback 75, Fit 92, Scope 80, Maintainability 65, Simplicity 65. The dissent is Testing & QA's: this change corrects the stale claims but adds no mechanism that stops them going stale again, so the same drift recurs at M3.6 unless a roadmap-consistency check lands in #16's workflow. That is outside this milestone and is flagged, not built.
 
@@ -24,7 +24,7 @@
 
 **3. PR #22 is not superseded — it is the ROADMAP correction.** The close-out handoff listed #22 as "likely superseded — check against #25". That is wrong. #22 rewrites the three stale `ROADMAP.md` passages (M3.3 "still closed", the remaining-milestone list, and live-provider status) correctly, and adds a gated live smoke test. #25 does not touch `ROADMAP.md` at all; the two do not overlap. **This PR deliberately does not restate #22's roadmap prose**, to keep the two from colliding — it adds only a conflict-free "Verified state" block at the top of `ROADMAP.md`. Merge #22 and the stale lines are fixed at the source.
 
-**4. PR #23 (M3.5) adds zero test coverage.** 118 tests on `main`, 118 tests on `b77862e`. It adds a live-fetching API route, a bundle regeneration fallback, a UI handler, and a schema field — none covered. Every prior milestone in Phases 1–3 added tests. This is the single largest risk in the queue.
+**4. PR #23 (M3.5) adds zero test coverage — but it works.** 118 tests on `main`, 118 on `b77862e`; the new route, bundle fallback, UI handler and schema field are all uncovered, and every prior Phase 1–3 milestone added tests. Running it against live providers, however, produced a valid bundle end to end (§5). Merge it and file the coverage; it is the largest *untested* surface in the queue, not a reason to keep the program unusable.
 
 **5. PR #25 carries four commits that have nothing to do with its stated purpose.** Its title is "correct the M3.5→M3.6 handoff", but the branch also publishes `CODEX_BRIEF.md`, `HANDOFF.md`, `TASK_LEDGER.md`, `REFOCUS.md`, a `README.md` change and `handoffs/` — commits `d9ce4ed`, `7c54efc`, `1c78575`, `26c4b55`, made directly to a local `main` in violation of `AGENTS.md`. Merging #25 publishes all of it. **Decided 2026-07-24: merge as-is with an amended body** — see §3.
 
@@ -39,12 +39,12 @@
 | 1 | **#16** | `chore/ci-verify` | Draft. Land first so everything after it is actually validated. Touches only `.github/` — cannot break the app. Needs un-drafting and one green run. |
 | 2 | **#22** | `feature/m3.3-followup` | Makes `ROADMAP.md` true. Nearly free, and every later PR is read against a correct roadmap. |
 | 3 | **#25** | `docs/m3.6-handoff-correction` | Publishes the coordination files and the corrected handoff. Merge as-is per the §3 decision, with the body amended. **This PR stacks on it** and must land immediately after. |
-| 4 | **#23** | `feature/surfaces-api-ui` | M3.5. The only functional change in the queue. **Recommended: hold until test coverage exists** — see §5. |
+| 4 | **#23** | `feature/surfaces-api-ui` | M3.5. The only functional change in the queue, and the one that makes the program usable. **Merge** — verified against live providers, see §5. Missing coverage is a follow-up, not a blocker. |
 | 5 | **#17** | `feature/unreal-importer-design` | Draft. Design doc for the Unreal importer; logically precedes the implementation in #24. |
 | 6 | **#24** | `feature/unreal-importer-reader` | Draft. The importer implementation. Reads `CoursePackage` — merge after #23 so it is validated against the final Phase 3 package shape. |
 | 7 | **#20** | `docs/course-style-profile` | Draft. Phase 6 research note. No dependency in either direction; land whenever. |
 
-Steps 1–3 are documentation and CI only and can go in one sitting — and #25 plus this PR should go in the *same* sitting, since this one carries the `ROADMAP.md` correction and stacks on that base. Step 4 is the remaining decision point. Steps 5–7 are Codex-owned drafts and are not urgent.
+Steps 1–4 get to a merged, running program: three docs PRs plus #23, no conflicts anywhere. #25 and this PR must go in the *same* sitting, since this one carries the `ROADMAP.md` correction and stacks on that base. Steps 5–7 are Codex-owned drafts, do not gate operability, and can follow whenever.
 
 ### Dependencies, stated precisely
 
@@ -90,13 +90,30 @@ Applied on this branch, which is stacked on #25 (see §1 finding 6). Every corre
 
 ## 5. Recommendation on #23 (M3.5)
 
-**Hold #23 until it has test coverage, or merge it with an explicitly filed coverage follow-up.**
+**Merge #23.** (Revised 2026-07-24 after running it — the earlier "hold until coverage exists" recommendation was made without executing the code.)
 
-The case for holding: it adds a route that performs a live external fetch, a bundle path that silently regenerates surfaces when the client cache is cold and 409s when it cannot, and a new optional schema field — with nothing asserting any of it. There is no CI. The regeneration fallback in particular has failure modes (cold cache + missing `providerCourseId`) that only a test will pin down.
+### Live verification, 2026-07-24
 
-The case for merging now: it is mergeable, `verify:fast` passes, and the in-flight M3.6 session is already based on `b77862e` — its stated first commit is exactly M3.5's missing coverage. If that session is real and near, the coverage arrives without blocking.
+Ran `main` + #23 + #22 in a scratch worktree against live providers:
 
-**Recommended:** confirm the M3.6 session's first commit is landing soon. If yes, merge #23 and let the coverage follow immediately behind it. If not, hold #23 and add the tests first. Do not merge #23 and leave the coverage unowned.
+| Step | Result |
+|---|---|
+| `verify:fast` | 118 passed, 1 skipped (gated live smoke), build clean, `/api/surfaces/generate` registers |
+| `POST /api/elevation/generate` (live Copernicus GLO-30) | 200 in 3.8 s — 87×88 raster, 257–294 m |
+| `POST /api/surfaces/generate` (live ESA WorldCover) | 200 in 13 s — 5 layers, 65,534 pixels classified |
+| `POST /api/course-package/bundle` | 200, 47 KB stored-method ZIP, 7 entries |
+| Artifact integrity | 6/6 `byteLength` + `sha256` in the manifest match the bytes on disk |
+| PNG validity | heightmap 87×88 16-bit grayscale; splat layers 256×256 8-bit grayscale |
+
+So the OSM → elevation → surfaces → `CoursePackage` chain produces a valid, verifiable bundle. **#23 is what makes the program usable** — without it `main` has the libraries but no way to drive them.
+
+**Caveat: the OSM geometry path was not exercised live.** Overpass is unreachable from the verifying container (`000`; ESA S3 returned 200, so it is Overpass specifically). The run used the mock provider, whose geometry is a deliberate stub — hence `osmPixels: 2` of 65,536, with land cover carrying nearly the whole raster. OSM-over-WorldCover precedence is covered by unit tests but unproven live here. The bundle proves plumbing, encoding and integrity; it does not prove a real course looks right.
+
+
+
+The missing coverage is still a real gap — the bundle's cold-cache regeneration path (missing `providerCourseId` → 409) has failure modes only a test will pin down, and there is no CI. But blocking a working pipeline on tests that the canopy branch already lists as its first commit trades a usable program for a process point. File the coverage as a follow-up and merge.
+
+**Efficient path to a merged, running program: #22 → #25 → this PR → #23.** Docs plus one functional PR, no conflicts anywhere. #16, #17, #20 and #24 do not gate operability and can follow whenever.
 
 ---
 
