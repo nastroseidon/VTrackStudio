@@ -2,6 +2,17 @@
 
 The authoritative record of what shipped is the commit body on each merged PR, plus the per-phase design notes (`PHASE2_DEM_HEIGHTMAP_DESIGN.md`, `PHASE3_LANDCOVER_SPLAT_DESIGN.md`). This file summarises them; where it disagrees with a commit body, the commit body wins.
 
+## Verified state — 2026-07-24
+
+Reconciled against `git log origin/main` and the GitHub PR list on 2026-07-24, at `origin/main` = `4caccd8`. Where the Phase 3 section below disagrees with this block, **this block wins** until the corrections land.
+
+- **M3.3 has shipped.** The ESA WorldCover live provider merged in **#21 → `4caccd8`**; the LIVE gate was approved and is closed out. The "Next: M3.3 … still closed" line below is stale.
+- **M3.5 is not merged.** It exists as **open PR #23** (`feature/surfaces-api-ui`, head `b77862e`). It is mergeable and passes `verify:fast`, but adds **no new tests** (118 on the branch, 118 on `main`). Treat M3.5 as in review, not landed.
+- **M3.6 is canopy/trees**, per `PHASE3_LANDCOVER_SPLAT_DESIGN.md` §7 — a tree-cover class plus canopy data to foliage instances, with its own LIVE gate and a schema addition. It is **not** a documentation-only "finalise Phase 3" milestone; any handoff saying otherwise is wrong.
+- **Milestone-to-PR map, read from `git log`:** M1.x → #6 (`3dae504`) · M2.1–M2.5b → #7 (`7356a10`) · M2.6 → #9 (`0cf1bfa`) · M3.1 → #10 (`337e32a`) · M3.2 → #13 (`40ab2d3`) · M3.4 → #19 (`778dc24`) · M3.3 → #21 (`4caccd8`).
+- **The prose corrections to the Phase 3 section below are already written** in open PR #22 (`feature/m3.3-followup`); they are deliberately not duplicated here to avoid a merge conflict. Merge order and per-PR risk for all seven open PRs are in `handoffs/PHASE3_MERGE_PLAN.md`.
+- **The repository has no CI.** Nothing automatically validates any open PR; PR #16 would add it.
+
 ## Current phase: Phase 3 — Land Cover & Splat Weightmaps
 
 Phase 3 gives each course a surface classification raster ("splat weightmaps") so terrain renders with correct materials — fairway, green, bunker, rough, trees, water — instead of one flat material. CourseForge emits weightmap artifacts plus a descriptor; Unreal maps them to Landscape material layers. Primary source is **ESA WorldCover**, chosen over USDA CDL because CDL is US-only and every other layer in the pipeline is global. Design and sign-off (2026-07-23) are in `PHASE3_LANDCOVER_SPLAT_DESIGN.md`.
