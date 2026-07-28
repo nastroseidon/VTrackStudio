@@ -2,7 +2,7 @@
 
 **Purpose**: Single source of truth for what paths are being actively worked on. Prevents parallel agents/tasks from editing the same files without coordination.
 
-**Last Updated**: 2026-07-24 (M3.5 complete)
+**Last Updated**: 2026-07-24 (Phase 3 close-out doc reconciliation; M3.5 in review, not complete)
 
 ---
 
@@ -10,7 +10,8 @@
 
 | Status | Task ID | Primary Path(s) | Owner | Started | Deadline | Est. Duration | Notes |
 |---|---|---|---|---|---|---|---|
-| ✅ COMPLETE | M3.5-api-ui | `apps/web/app/api/surfaces/`, `apps/web/app/page.tsx`, `components/ProjectStatusRail.tsx` | Session-0 | 2026-07-23 | 2026-07-24 | 2h | Implemented; PR #23 awaiting manual merge approval |
+| 🔄 IN_REVIEW | M3.5-api-ui | `apps/web/app/api/surfaces/`, `apps/web/app/page.tsx`, `components/ProjectStatusRail.tsx` | Session-0 | 2026-07-23 | open PR #23 | 2h | Built at `b77862e`, **not merged**. Adds no tests (118 → 118). |
+| ✅ COMPLETE | phase3-closeout-docs | `courseforge/docs/ROADMAP.md`, `HANDOFF.md`, `TASK_LEDGER.md`, `handoffs/` | Session-cloud | 2026-07-24 | 2026-07-24 | 1h | Doc reconciliation + `handoffs/PHASE3_MERGE_PLAN.md`. Docs only, no source changes. |
 
 ---
 
@@ -18,10 +19,10 @@
 
 | Path | Last Owner | Est. Next Work | Notes |
 |---|---|---|---|
-| `courseforge/docs/PHASE3*.md` | Session-0 | Archive + final docs | Ready for M3.6 finalization |
+| `courseforge/docs/PHASE3*.md` | Session-0 | None — locked | Signed off 2026-07-23. **Not** an M3.6 deliverable: M3.6 is canopy/trees (§7 of that document), not doc archival. |
 | `courseforge/apps/web/lib/surfaces/` | Session-0 | Extensions (Phase 4+) | Stable, no changes expected soon |
 | `courseforge/apps/web/lib/elevation/` | Session-0 | Extensions (Phase 4+) | Stable, no changes expected soon |
-| `courseforge/apps/web/tests/` | Session-0 | New E2E test scenarios | Available for expansion |
+| `courseforge/apps/web/tests/` | Session-0 | M3.5's missing coverage | ⚠️ Claimed by the in-flight M3.6 session (`feature/m3.6-canopy`, unverified — the branch is not on `origin`). Coordinate before editing. PR #22 also lands a file here. |
 | `courseforge/apps/web/components/` | Session-0 | UI polish, accessibility | Available for improvements |
 
 ---
