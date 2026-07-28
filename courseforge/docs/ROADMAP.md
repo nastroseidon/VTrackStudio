@@ -8,9 +8,11 @@ Phase 3 gives each course a surface classification raster ("splat weightmaps") s
 
 **Landed:** M3.0 design + sign-off. M3.1 — additive `CourseSplatMap` / `CourseSurfaceLayer` schema plus `CoursePackage.surfaces?`, and an 8-bit hard-mask weightmap encoder over eight surface layers; PNG writer extracted to `lib/imaging/png.ts` (#10). M3.2 — polygon rasteriser: even-odd scanline fill, lat/lng-to-pixel mapping, cross-hole aggregation, and precedence painting, leaving uncovered pixels UNASSIGNED (#13). M3.4 — land-cover compositor and full splat generation: `compositeSurfaceLayers` fills UNASSIGNED pixels from a decoded class raster (OSM always wins; WorldCover class→layer mapping defined in `lib/surfaces/composite-surfaces.ts`), and `generateCourseSplatMap` chains rasterise → composite → encode with versioned-source attribution enforcement. M3.4 was built ahead of M3.3 because it is offline and fixture-testable; the live fetch plugs in at the `ClassGrid` seam.
 
-**Next: M3.3 — WorldCover tile addressing, fetch, decode (LIVE gate — still closed).** Requires live-provider approval; verify key convention, licensing, attribution, and `Accept-Ranges` via HEAD before any data pull. The decoded output feeds `compositeSurfaceLayers` directly.
+M3.3 — the live keyless ESA WorldCover provider — landed in #21 after the live-provider gate was explicitly approved (2026-07-24). The 3° tile key convention was verified against the bucket before first use, the pinned release is recorded in `sources` (never an implicit "latest"), fetching is `fetchImpl`-injectable so the routine suite stays offline, and multi-tile courses stitch through the M2.6 mosaic. A repeatable gated live smoke exists at `tests/integration/worldcover-live-smoke.test.ts` (`WORLDCOVER_LIVE=1`); it is skipped by default. Note for M3.5: tile sizes vary widely (a few MB ocean-heavy up to 87.6 MB for N36W123), and the bucket supports range requests — COG range reads are the natural optimisation before interactive API use.
 
-**Remaining Phase 3 milestones:** M3.5 API + UI wiring and bundle export (BROWSER gate) · M3.6 canopy/trees, tree-cover class and canopy data to foliage instances (own LIVE gate + schema change) · M3.7 merge to `main`. Later refinements: USDA CDL for the US, NAIP imagery, Microsoft buildings.
+**Next: M3.5 — API + UI wiring and bundle export (BROWSER gate).** Wire WorldCover-backed splat generation into the API routes and UI, and include weightmap layers in the course bundle export. Requires `npm run verify` including Playwright.
+
+**Remaining Phase 3 milestones:** M3.6 canopy/trees, tree-cover class and canopy data to foliage instances (own LIVE gate + schema change) · M3.7 merge to `main`. Later refinements: USDA CDL for the US, NAIP imagery, Microsoft buildings.
 
 ## Completed: Phase 2 — GLO-30 DEM Heightmaps
 
@@ -44,7 +46,7 @@ Milestone 16 does not activate live or paid providers, add Earth Engine or USGS 
 
 ## Live provider status
 
-Live providers are **already active** in this project: Overpass/OSM (Phase 1) and Copernicus GLO-30 (Phase 2, keyless). ESA WorldCover remains **gated and not activated** until M3.3, as does canopy data at M3.6. Attribution obligations currently in force: OSM data © OpenStreetMap contributors (ODbL); Copernicus DEM © DLR/Airbus, provided under Copernicus by the EU/ESA.
+Live providers **active**: Overpass/OSM (Phase 1), Copernicus GLO-30 (Phase 2, keyless), and ESA WorldCover (Phase 3 M3.3, keyless, gate approved 2026-07-24, #21). Canopy data remains **gated** until M3.6. Attribution obligations in force: OSM data © OpenStreetMap contributors (ODbL); Copernicus DEM © DLR/Airbus, provided under Copernicus by the EU/ESA; ESA WorldCover © ESA WorldCover project, CC-BY 4.0 (v200 DOI `10.5281/zenodo.7254221`).
 
 ## Maintaining this document
 
