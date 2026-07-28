@@ -148,9 +148,13 @@ There is **no PR #15 in `main`'s history.** The GLO-30 provider and the GeoTIFF 
 | #16 | `chore/ci-verify` | yes | `.github/workflows/verify.yml` — **the repo still has no CI** |
 | #17 | `feature/unreal-importer-design` | yes | Unreal importer `DESIGN.md` |
 | #20 | `docs/course-style-profile` | yes | Phase 6 style-profile research note |
-| #24 | `feature/unreal-importer-reader` | yes | UE 5.8 `CoursePackage` reader plugin |
+| #24 | `feature/unreal-importer-reader` | no | UE 5.8 `CoursePackage` reader plugin (`75ada65`) |
+| #27 | `chore/project-focus-agent` | no | Project-focus and milestone-verification guidance for `AGENTS.md` |
 
-None gate operability. #16 is the most valuable of the four: nothing currently validates any PR, and it is the natural home for a check that stops the roadmap going stale again.
+None gate operability. Two are worth attention:
+
+- **#16** is the most valuable. Nothing currently validates any PR, and it is the natural home for a check that stops the roadmap going stale again.
+- **#27** addresses the same failure from the process side. Pair it with #16 rather than treating either as sufficient alone: #27 tells an agent to verify, #16 is what catches it when one does not.
 
 ### To Do (Next: M3.6 — canopy/trees)
 - Settle the shared-working-directory blocker first. Three occurrences is a pattern, not bad luck.
