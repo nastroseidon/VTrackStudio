@@ -55,6 +55,7 @@ type ProjectStatusRailProps = {
   onExportProject: () => void;
   onGenerateGoogleElevationProfile: () => void;
   onGenerateCopernicusElevationProfile: () => void;
+  onGenerateSurfaceLayers: () => void;
   onGenerateMockElevationProfile: () => void;
   onGenerateBasicGeometry: () => void;
   onToggleElevationSamples: () => void;
@@ -102,6 +103,7 @@ export function ProjectStatusRail({
   onExportProject,
   onGenerateGoogleElevationProfile,
   onGenerateCopernicusElevationProfile,
+  onGenerateSurfaceLayers,
   onGenerateMockElevationProfile,
   onGenerateBasicGeometry,
   onToggleElevationSamples,
@@ -408,7 +410,26 @@ export function ProjectStatusRail({
           >
             Generate Copernicus GLO-30 Heightmap
           </button>
+          <button
+            className="primary-action compact-action"
+            disabled={!elevationModel?.heightmap || !currentProject?.providerCourseId}
+            onClick={onGenerateSurfaceLayers}
+            type="button"
+          >
+            Generate Surface Layers (WorldCover)
+          </button>
         </div>
+        {currentProject?.surfaces ? (
+          <div className="rail-compact-grid" aria-label="Surface layers">
+            <span>Surfaces</span>
+            <strong>
+              {currentProject.surfaces.layers.length} layers ({currentProject.surfaces.width}×
+              {currentProject.surfaces.height})
+            </strong>
+            <span>Sources</span>
+            <strong>{currentProject.surfaces.sources.join(", ")}</strong>
+          </div>
+        ) : null}
         {!googleElevationStatus?.enabled ? (
           <p>Google Elevation requires GOOGLE_MAPS_SERVER_API_KEY in .env.local.</p>
         ) : null}

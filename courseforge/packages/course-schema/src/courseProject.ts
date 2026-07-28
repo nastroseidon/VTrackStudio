@@ -268,4 +268,6 @@ export type CourseProject = {
   boundary?: CourseBoundary;
   generatedGeometry?: GeneratedCourseGeometry;
   elevationModel?: CourseElevationModel;
+  /** Surface splat descriptor (Phase 3). Layer bytes are artifacts, not stored here. */
+  surfaces?: CourseSplatMap;
 };

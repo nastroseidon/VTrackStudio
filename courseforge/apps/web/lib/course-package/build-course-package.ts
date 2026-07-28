@@ -224,6 +224,7 @@ export function buildCoursePackage(
       holes: project.generatedGeometry?.holes ?? []
     },
     elevation: project.elevationModel,
+    surfaces: project.surfaces,
     metadata: {
       geometryStatus: project.geometryStatus,
       locationSource: project.locationSource,
