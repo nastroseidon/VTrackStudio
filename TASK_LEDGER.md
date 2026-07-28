@@ -2,7 +2,7 @@
 
 **Purpose**: Single source of truth for what paths are being actively worked on. Prevents parallel agents/tasks from editing the same files without coordination.
 
-**Last Updated**: 2026-07-24 (Phase 3 close-out doc reconciliation; M3.5 in review, not complete)
+**Last Updated**: 2026-07-28 (Phase 3 code complete through M3.5, merged; M3.6 canopy next)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Status | Task ID | Primary Path(s) | Owner | Started | Deadline | Est. Duration | Notes |
 |---|---|---|---|---|---|---|---|
-| 🔄 IN_REVIEW | M3.5-api-ui | `apps/web/app/api/surfaces/`, `apps/web/app/page.tsx`, `components/ProjectStatusRail.tsx` | Session-0 | 2026-07-23 | open PR #23 | 2h | Built at `b77862e`, **not merged**. Adds no tests (118 → 118). |
+| ✅ COMPLETE | M3.5-api-ui | `apps/web/app/api/surfaces/`, `apps/web/app/page.tsx`, `components/ProjectStatusRail.tsx` | Session-0 | 2026-07-23 | merged | 2h | Landed via #26 (`2b0d828`) with 18 tests, 118 → 136. #23 built the same scope untested and was closed. |
 | ✅ COMPLETE | phase3-closeout-docs | `courseforge/docs/ROADMAP.md`, `HANDOFF.md`, `TASK_LEDGER.md`, `handoffs/` | Session-cloud | 2026-07-24 | 2026-07-24 | 1h | Doc reconciliation + `handoffs/PHASE3_MERGE_PLAN.md`. Docs only, no source changes. |
 
 ---
@@ -22,7 +22,7 @@
 | `courseforge/docs/PHASE3*.md` | Session-0 | None — locked | Signed off 2026-07-23. **Not** an M3.6 deliverable: M3.6 is canopy/trees (§7 of that document), not doc archival. |
 | `courseforge/apps/web/lib/surfaces/` | Session-0 | Extensions (Phase 4+) | Stable, no changes expected soon |
 | `courseforge/apps/web/lib/elevation/` | Session-0 | Extensions (Phase 4+) | Stable, no changes expected soon |
-| `courseforge/apps/web/tests/` | Session-0 | M3.5's missing coverage | ⚠️ Claimed by the in-flight M3.6 session (`feature/m3.6-canopy`, unverified — the branch is not on `origin`). Coordinate before editing. PR #22 also lands a file here. |
+| `courseforge/apps/web/tests/` | #26 | M3.6 canopy coverage | ⚠️ **Check `origin/main` immediately before starting here.** Duplicate test work has happened once already: #29 recreated #26's coverage an hour after it merged, under the same filename. Shared fixtures live in `tests/helpers/surface-fixtures.ts` — extend them, do not recreate them. |
 | `courseforge/apps/web/components/` | Session-0 | UI polish, accessibility | Available for improvements |
 
 ---
