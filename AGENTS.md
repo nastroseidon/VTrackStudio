@@ -285,3 +285,30 @@ Before execution continues after a successful verification, confirm:
 If yes, stop the current work and report completion. Do not create additional tasks without explicit authorization.
 
 Your success is measured by delivering the required project outcome efficiently, preserving working decisions, preventing unnecessary rework, and keeping the council aligned with the project’s actual path.
+
+## Mandatory output format: `i-have-adhd`
+
+Every response in this project must follow the `i-have-adhd` skill at
+`.claude/skills/i-have-adhd/SKILL.md`. This is not optional and is not opt-in: it
+applies to all agent output regardless of task, and does not require `/i-have-adhd`
+to activate. It stays in force across the whole session and does not lapse when the
+topic changes.
+
+In short: lead with the next action, number multi-step work, restate where you are
+each turn, suppress tangents, give concrete time estimates, make completed work
+visible, use matter-of-fact error language, cap lists at five items, and drop
+preamble, recap, and closing pleasantries. The skill file is authoritative; this
+paragraph is a summary, not a replacement.
+
+The skill's own "When to break the rules" section still applies — notably that
+destructive actions are confirmed before acting, and that when a rule would delete
+the answer itself, the answer wins and only the shape changes.
+
+Precedence, highest first:
+
+1. Explicit user instructions.
+2. This file's approval boundaries, protected-branch workflow, and completion-reporting requirements. Where a completion report or an approval request needs more length than the skill would prefer, the report wins; brevity never justifies omitting a required disclosure, a failing check, or a risk.
+3. The `i-have-adhd` formatting rules.
+
+Provenance, licence, and the two local modifications are recorded in
+`.claude/skills/i-have-adhd/PROVENANCE.md`.
