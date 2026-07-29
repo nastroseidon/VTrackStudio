@@ -2,16 +2,16 @@
 
 The authoritative record of what shipped is the commit body on each merged PR, plus the per-phase design notes (`PHASE2_DEM_HEIGHTMAP_DESIGN.md`, `PHASE3_LANDCOVER_SPLAT_DESIGN.md`). This file summarises them; where it disagrees with a commit body, the commit body wins.
 
-## Verified state — 2026-07-24
+## Verified state — 2026-07-28
 
-Reconciled against `git log origin/main` and the GitHub PR list on 2026-07-24, at `origin/main` = `4caccd8`. Where the Phase 3 section below disagrees with this block, **this block wins** until the corrections land.
+Reconciled against `git log origin/main` at `b5075dc`. Phase 3's code milestones are all merged; **M3.6 (canopy/trees) is the only one left**.
 
-- **M3.3 has shipped.** The ESA WorldCover live provider merged in **#21 → `4caccd8`**; the LIVE gate was approved and is closed out. The "Next: M3.3 … still closed" line below is stale.
-- **M3.5 is not merged.** It exists as **open PR #23** (`feature/surfaces-api-ui`, head `b77862e`). It is mergeable and passes `verify:fast`, but adds **no new tests** (118 on the branch, 118 on `main`). Treat M3.5 as in review, not landed.
-- **M3.6 is canopy/trees**, per `PHASE3_LANDCOVER_SPLAT_DESIGN.md` §7 — a tree-cover class plus canopy data to foliage instances, with its own LIVE gate and a schema addition. It is **not** a documentation-only "finalise Phase 3" milestone; any handoff saying otherwise is wrong.
-- **Milestone-to-PR map, read from `git log`:** M1.x → #6 (`3dae504`) · M2.1–M2.5b → #7 (`7356a10`) · M2.6 → #9 (`0cf1bfa`) · M3.1 → #10 (`337e32a`) · M3.2 → #13 (`40ab2d3`) · M3.4 → #19 (`778dc24`) · M3.3 → #21 (`4caccd8`).
-- **The prose corrections to the Phase 3 section below are already written** in open PR #22 (`feature/m3.3-followup`); they are deliberately not duplicated here to avoid a merge conflict. Merge order and per-PR risk for all seven open PRs are in `handoffs/PHASE3_MERGE_PLAN.md`.
-- **The repository has no CI.** Nothing automatically validates any open PR; PR #16 would add it.
+- **M3.5 has shipped.** Surfaces API, UI wiring and bundle export merged in **#26 → `2b0d828`**, together with 18 tests covering every executable path it introduced. The suite is **136 tests across 17 files**. PR #23 built the same scope without tests and was closed as superseded.
+- **M3.3 has shipped.** ESA WorldCover live provider, **#21 → `4caccd8`**; LIVE gate approved and closed out.
+- **M3.6 is canopy/trees**, per `PHASE3_LANDCOVER_SPLAT_DESIGN.md` §7 — a tree-cover class plus canopy data to foliage instances. It needs **two separate approvals**: its own LIVE gate for canopy data, and a schema addition. It is **not** a documentation-only "finalise Phase 3" milestone; any handoff saying otherwise is wrong. M3.7 is the Phase 3 close-out.
+- **Milestone-to-PR map, read from `git log`:** M1.x → #6 (`3dae504`) · M2.1–M2.5b → #7 (`7356a10`) · M2.6 → #9 (`0cf1bfa`) · M3.1 → #10 (`337e32a`) · M3.2 → #13 (`40ab2d3`) · M3.4 → #19 (`778dc24`) · M3.3 → #21 (`4caccd8`) · M3.5 → #26 (`2b0d828`).
+- **The pipeline was run end to end against live providers on 2026-07-27.** Live Copernicus GLO-30 returned an 87×88 16-bit raster in 3.8 s; live ESA WorldCover returned 5 splat layers in 13 s; the bundle route produced a 47 KB stored-method ZIP whose 6 artifacts all matched their manifest `byteLength` and `sha256`. The OSM geometry path was **not** exercised live — Overpass was unreachable from the verifying container — so that run leant on the mock geometry stub.
+- **The repository still has no CI.** Nothing automatically validates any PR; #16 would add it, and is still open as a draft.
 
 ## Current phase: Phase 3 — Land Cover & Splat Weightmaps
 
@@ -21,9 +21,9 @@ Phase 3 gives each course a surface classification raster ("splat weightmaps") s
 
 M3.3 — the live keyless ESA WorldCover provider — landed in #21 after the live-provider gate was explicitly approved (2026-07-24). The 3° tile key convention was verified against the bucket before first use, the pinned release is recorded in `sources` (never an implicit "latest"), fetching is `fetchImpl`-injectable so the routine suite stays offline, and multi-tile courses stitch through the M2.6 mosaic. A repeatable gated live smoke exists at `tests/integration/worldcover-live-smoke.test.ts` (`WORLDCOVER_LIVE=1`); it is skipped by default. Note for M3.5: tile sizes vary widely (a few MB ocean-heavy up to 87.6 MB for N36W123), and the bucket supports range requests — COG range reads are the natural optimisation before interactive API use.
 
-**Next: M3.5 — API + UI wiring and bundle export (BROWSER gate).** Wire WorldCover-backed splat generation into the API routes and UI, and include weightmap layers in the course bundle export. Requires `npm run verify` including Playwright.
+M3.5 — API + UI wiring and bundle export — landed in #26 (`2b0d828`): `POST /api/surfaces/generate`, surface layers in the bundle with a server-side regeneration fallback and a 409 when it cannot regenerate, the "Generate Surface Layers" control, and `surfaces` on `CourseProject` / `CoursePackage`. Shipped with 18 tests over the routes, the fallback and the package assembly.
 
-**Remaining Phase 3 milestones:** M3.6 canopy/trees, tree-cover class and canopy data to foliage instances (own LIVE gate + schema change) · M3.7 merge to `main`. Later refinements: USDA CDL for the US, NAIP imagery, Microsoft buildings.
+**Next: M3.6 — canopy/trees**, tree-cover class and canopy data to foliage instances. Gated twice over: its own LIVE gate for canopy data, plus a schema change. Then M3.7, the Phase 3 close-out. Later refinements: USDA CDL for the US, NAIP imagery, Microsoft buildings.
 
 ## Completed: Phase 2 — GLO-30 DEM Heightmaps
 

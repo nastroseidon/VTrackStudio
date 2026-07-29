@@ -1,16 +1,16 @@
 # CourseForge Handoff Protocol
 
-**Last Updated:** 2026-07-24 (M3.5 in review as open PR #23; reconciled against `git log`)
+**Last Updated:** 2026-07-28 (Phase 3 code complete through M3.5; M3.6 canopy is next)
 
-> **Provenance.** Every milestone and PR claim in this file was re-derived on 2026-07-24 from `git log origin/main` at `4caccd8` and the GitHub open-PR list. Do not hand-edit these claims at the end of a session without re-checking them — that is how the errors corrected here got in. Merge order and per-PR risk for the seven open PRs are in `handoffs/PHASE3_MERGE_PLAN.md`.
+> **Provenance.** Every milestone and PR claim in this file was re-derived from `git log origin/main` at `b5075dc`. Do not hand-edit these claims at the end of a session without re-checking them — that is how the errors corrected here got in.
 
 ## Quick Status
 
-- **Phase**: Phase 3 (Land Cover Splat Weightmaps) — 🔄 **M3.5 in review, not merged**
-- **Current Branch**: `feature/surfaces-api-ui` (open PR #23, head `b77862e`, mergeable, awaiting merge approval). An open PR is not a merged one.
-- **Project State**: All geometry, elevation, and surface-layer generation working end-to-end with open-data sources (OSM, Copernicus GLO-30, ESA WorldCover) — **on PR #23's branch**. `main` at `4caccd8` has geometry, elevation and splat generation, but not the surfaces API/UI wiring.
-- **Next Milestone**: **M3.6 — canopy/trees**: a tree-cover class plus canopy data to foliage instances, with its own LIVE gate and a schema addition (`PHASE3_LANDCOVER_SPLAT_DESIGN.md` §7, `courseforge/docs/ROADMAP.md`). It is **not** a documentation-only "finalize Phase 3" milestone. M3.7 is the merge to `main`.
-- **Known gap**: PR #23 adds **no new tests** — 118 on the branch, 118 on `main`. Every prior Phase 1–3 milestone added tests. See `handoffs/PHASE3_MERGE_PLAN.md` §5.
+- **Phase**: Phase 3 (Land Cover Splat Weightmaps) — code complete through **M3.5**, merged
+- **`main`**: `b5075dc`. `verify:fast` green: lint, typecheck, **136 tests across 17 files** (1 skipped, the gated live smoke), `next build` clean.
+- **Project State**: the full pipeline runs end to end — OSM geometry → Copernicus GLO-30 elevation → ESA WorldCover surfaces → `CoursePackage` ZIP. Verified against live providers on 2026-07-27; artifact `sha256` and `byteLength` all matched.
+- **Next Milestone**: **M3.6 — canopy/trees**: a tree-cover class plus canopy data to foliage instances (`PHASE3_LANDCOVER_SPLAT_DESIGN.md` §7). Needs **two approvals**: a LIVE gate for canopy data and a schema addition. It is **not** a documentation-only "finalize Phase 3" milestone. M3.7 is the close-out.
+- **Open blocker**: the shared working directory (`handoffs/M3.5-to-M3.6.md` §1a). It has now caused duplicate work **three times** — M3.4, M3.5, and again on 2026-07-28 when #29 duplicated #26's coverage. Settle it before starting M3.6.
 - **Council Score (M3.5)**: N/A (implementation task, no decision needed)
 
 ---
@@ -116,7 +116,7 @@ All decisions and code changes must pass Technical Strategy Council scoring:
 
 ### Merged (Main) ✅
 
-Read from `git log origin/main` on 2026-07-24. The previous version of this table was wrong about #7, #13, #15 and #21, and omitted #9, #10 and #19 entirely.
+Read from `git log origin/main` at `b5075dc`.
 
 | PR | Commit | Milestone | Description |
 |---|---|---|---|
@@ -125,33 +125,42 @@ Read from `git log origin/main` on 2026-07-24. The previous version of this tabl
 | #9 | `0cf1bfa` | M2.6 | Multi-tile GLO-30 mosaicking + `sampleGridNearest` tile-seam fix |
 | #10 | `337e32a` | M3.1 | `CourseSplatMap` / `CourseSurfaceLayer` schema + 8-bit hard-mask encoder; PNG writer extracted to `lib/imaging/png.ts` |
 | #13 | `40ab2d3` | M3.2 | Polygon rasteriser: even-odd scanline fill, lat/lng→pixel mapping, cross-hole aggregation, precedence painting |
-| #19 | `778dc24` | M3.4 | Land-cover compositor + full splat generation (`compositeSurfaceLayers`, `generateCourseSplatMap`) |
-| #21 | `4caccd8` | M3.3 | ESA WorldCover live provider feeding the compositor (LIVE gate approved 2026-07-24) |
+| #19 | `778dc24` | M3.4 | Land-cover compositor + full splat generation |
+| #21 | `4caccd8` | M3.3 | ESA WorldCover live provider feeding the compositor |
+| #26 | `2b0d828` | **M3.5** | Surfaces API + UI wiring + bundle integration, **with 18 tests**; 118 → 136 |
+| #22 | `d454d83` | — | ROADMAP correction + gated live WorldCover smoke |
+| #28 | `d08794d` | — | Doc reconciliation + `handoffs/PHASE3_MERGE_PLAN.md` |
+| #25 | `b5075dc` | — | Corrected handoff + coordination files |
 
-There is **no PR #15 in `main`'s history.** The GLO-30 provider and the GeoTIFF decoder both landed in #7. M3.4 (#19) deliberately landed before M3.3 (#21) because the compositor is offline and fixture-testable; the live fetch plugs in at the `ClassGrid` seam.
+There is **no PR #15 in `main`'s history.** The GLO-30 provider and the GeoTIFF decoder both landed in #7. M3.4 (#19) deliberately landed before M3.3 (#21) because the compositor is offline and fixture-testable.
 
-### Open PRs 🔄
+### Closed without merging
 
-Seven, as of 2026-07-24. All seven merge cleanly into `main` and against each other — verified with `git merge-tree --write-tree` across all 21 pairs, so there are **no textual conflicts** to resolve. Order, risk and rollback per PR: `handoffs/PHASE3_MERGE_PLAN.md`.
+| PR | Why |
+|---|---|
+| #23 | M3.5 built without tests. Superseded by #26, which shipped the same scope with coverage. |
+| #29 | Coverage written for #23's branch without re-fetching `main`, an hour after #26 had already landed better coverage. Closed with #23. |
+
+### Still open
 
 | PR | Branch | Draft | Scope |
 |---|---|---|---|
-| #16 | `chore/ci-verify` | yes | `.github/workflows/verify.yml` — **the repo currently has no CI**, so nothing validates any of these PRs |
+| #16 | `chore/ci-verify` | yes | `.github/workflows/verify.yml` — **the repo still has no CI** |
 | #17 | `feature/unreal-importer-design` | yes | Unreal importer `DESIGN.md` |
 | #20 | `docs/course-style-profile` | yes | Phase 6 style-profile research note |
-| #22 | `feature/m3.3-followup` | no | `ROADMAP.md` M3.3 corrections + gated live WorldCover smoke test |
-| #23 | `feature/surfaces-api-ui` | no | **M3.5** — surfaces API + UI + bundle integration. No new tests. |
-| #24 | `feature/unreal-importer-reader` | yes | UE 5.8 `CoursePackage` reader plugin |
-| #25 | `docs/m3.6-handoff-correction` | no | Corrected M3.5→M3.6 handoff; also publishes the coordination files |
+| #24 | `feature/unreal-importer-reader` | no | UE 5.8 `CoursePackage` reader plugin (`75ada65`) |
+| #27 | `chore/project-focus-agent` | no | Project-focus and milestone-verification guidance for `AGENTS.md` |
 
-### Pending Manual Approval 🔄
-- **PR #23** (M3.5 surfaces API + UI): awaiting user merge approval to `main`. Recommendation in `handoffs/PHASE3_MERGE_PLAN.md` §5 — merge only if the missing test coverage has a committed owner.
+None gate operability. Two are worth attention:
+
+- **#16** is the most valuable. Nothing currently validates any PR, and it is the natural home for a check that stops the roadmap going stale again.
+- **#27** addresses the same failure from the process side. Pair it with #16 rather than treating either as sufficient alone: #27 tells an agent to verify, #16 is what catches it when one does not.
 
 ### To Do (Next: M3.6 — canopy/trees)
+- Settle the shared-working-directory blocker first. Three occurrences is a pattern, not bad luck.
 - Tree-cover class → foliage instances, per `PHASE3_LANDCOVER_SPLAT_DESIGN.md` §7
-- Requires its own **LIVE gate** approval for canopy data, and a **schema addition** — two separate approval gates
-- Add the test coverage M3.5 (#23) did not
-- M3.7 is the merge to `main` and the Phase 3 close-out
+- Requires a **LIVE gate** approval for canopy data and a **schema addition** — two separate gates
+- M3.7 is the Phase 3 close-out
 
 ---
 
@@ -163,7 +172,7 @@ Seven, as of 2026-07-24. All seven merge cleanly into `main` and against each ot
 
 | Status | Task | Path | Owner | Since | Deadline | Notes |
 |---|---|---|---|---|---|---|
-| IN_REVIEW | M3.5-impl | `courseforge/apps/web/app/` | Session-0 | 2026-07-23 | open PR #23 | Built, not merged — PR #23 open at `b77862e` |
+| ✅ COMPLETE | M3.5-impl | `courseforge/apps/web/app/` | Session-0 | 2026-07-23 | merged | Landed via #26 (`2b0d828`) with 18 tests; #23 closed as superseded |
 | FREE | M3.6-finalize | `courseforge/docs/` | — | — | — | Next: archive Phase 3, publish roadmap |
 | FREE | UI-polish | `courseforge/apps/web/components/` | — | — | — | No active work |
 | FREE | tests-expand | `courseforge/apps/web/tests/` | — | — | — | No active work |

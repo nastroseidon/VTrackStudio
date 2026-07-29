@@ -1,10 +1,16 @@
 # Phase 3 Close-Out — Proposed Merge Order for the 7 Open PRs
 
-**Status:** proposal awaiting user approval. **Nothing here has been merged.** Merging to `main` requires explicit user approval, always.
+> **CLOSED 2026-07-28.** Every PR in this plan is resolved. `main` is at `b5075dc` with `verify:fast` green: 136 tests across 17 files, lint, typecheck and `next build` clean.
+>
+> **Merged:** #22 (`d454d83`), #28 (`d08794d`), #25 (`b5075dc`), and **#26 (`2b0d828`) for M3.5** — which landed while this plan was being written, carrying the 18 tests §5 said were missing.
+>
+> **Closed unmerged:** #23, superseded by #26; and #29, whose coverage duplicated #26's an hour after it merged, under the same filename.
+>
+> **Still open, none gating operability:** #16 (CI), #17, #20, #24.
+>
+> The §5 recommendation to merge #23 was correct about the code and wrong about which PR would carry it. The lesson is in §7 item 7 below. The plan is kept as the record of how the decisions were reached; do not treat its PR states as current.
 
-**Decisions recorded so far:** §3 — merge #25 as-is with an amended body (user, 2026-07-24). §5 — merge #23; the pipeline was run against live providers and works (evidence in §5).
-
-**Council score for this change:** 80.5 — below the 85 auto-proceed threshold, so it was presented rather than self-approved. Correctness 92, Safety 90, Testability 55, Rollback 75, Fit 92, Scope 80, Maintainability 65, Simplicity 65. The dissent is Testing & QA's: this change corrects the stale claims but adds no mechanism that stops them going stale again, so the same drift recurs at M3.6 unless a roadmap-consistency check lands in #16's workflow. That is outside this milestone and is flagged, not built.
+---
 
 **Provenance.** Every claim below was established on **2026-07-24** from this repository, not inherited from a prior handoff:
 
@@ -141,6 +147,9 @@ Listed rather than guessed at.
 4. ~~`REFOCUS.md` was not read before this submission.~~ **Resolved** — reachable once this branch stacked on #25, and read. Its scope questions are satisfied: this is the assigned milestone's work, no abstractions or speculative infrastructure were added, and per its question 7 the path is now checked out in `TASK_LEDGER.md`.
 5. **Test counts are from Node 22.22.2, not the Node 24.18.0 the project standardises on** — this cloud environment's toolchain. The count matched (118) so the discrepancy appears immaterial, but it is not the documented configuration.
 6. **`PHASE3_LANDCOVER_SPLAT_DESIGN.md` is signed off and locked and was not edited.** Nothing in it was found to be wrong.
+7. **Duplicate work happened again, during this very plan.** PR #26 landed M3.5 with full coverage at 16:54 on 2026-07-28. PR #29 was written against #23's branch roughly an hour later and recreated that coverage, down to an identically named `tests/unit/surfaces-generate-route.test.ts`, because `origin/main` was never re-fetched after the worktree was created. That is the third occurrence after M3.4 and M3.5.
+
+   Worth being precise about the cause, because the recorded fix does not cover it. Worktree isolation prevents sessions **destroying** each other's uncommitted work; it does nothing about sessions **duplicating** merged work. The only thing that would have caught this is checking `origin/main` immediately before starting, not at session start. Both belong in the process.
 
 ---
 
